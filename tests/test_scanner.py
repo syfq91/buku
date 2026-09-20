@@ -15,6 +15,7 @@ from buku.config import Settings, set_settings
 from buku.db import get_engine, get_session_factory, reset_engine, run_migrations
 from buku.models import Book, BookFile, Job, Library, ReadingProgress, User
 from buku.scanner import LibraryScanner
+from tests.fixtures import TINY_JPEG, build_cbz, build_epub, build_pdf, tiny_png_data
 
 
 @pytest.fixture
@@ -33,35 +34,14 @@ def db_url(tmp_path: Path) -> Generator[str]:
     set_settings(None)
 
 
-def create_dummy_epub(path: Path, content: bytes = b"dummy epub content") -> Path:
-    """Create a minimal mock EPUB file with zip magic header."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(b"PK\x03\x04" + content)
-    return path
-
-
-def create_dummy_cbz(path: Path, content: bytes = b"dummy cbz content") -> Path:
-    """Create a minimal mock CBZ file with zip magic header."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(b"PK\x03\x04" + content)
-    return path
-
-
-def create_dummy_pdf(path: Path, content: bytes = b"dummy pdf content") -> Path:
-    """Create a minimal mock PDF file with %PDF magic header."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(b"%PDF-1.4 " + content)
-    return path
-
-
 def test_scan_discovers_and_adds_books(db_url: str, tmp_path: Path) -> None:
     """Verify that scanner recursively discovers and registers EPUB, CBZ, and PDF files."""
     library_dir = tmp_path / "books"
     library_dir.mkdir()
 
-    create_dummy_epub(library_dir / "Frank Herbert - Dune.epub")
-    create_dummy_cbz(library_dir / "Comics" / "Spider-Man.cbz")
-    create_dummy_pdf(library_dir / "Docs" / "Python Guide.pdf")
+    build_epub(library_dir / "Frank Herbert - Dune.epub", title="Dune", authors=["Frank Herbert"])
+    build_cbz(library_dir / "Comics" / "Spider-Man.cbz", count=4)
+    build_pdf(library_dir / "Docs" / "Python Guide.pdf")
     # Non-book and hidden files that should be ignored
     (library_dir / "notes.txt").write_text("ignore me")
     (library_dir / ".hidden_book.epub").write_bytes(b"PK\x03\x04hidden")
@@ -101,8 +81,8 @@ def test_scanning_twice_without_changes_skips_reprocessing(db_url: str, tmp_path
     """
     library_dir = tmp_path / "books"
     library_dir.mkdir()
-    create_dummy_epub(library_dir / "Book One.epub")
-    create_dummy_pdf(library_dir / "Book Two.pdf")
+    build_epub(library_dir / "Book One.epub", title="Book One")
+    build_pdf(library_dir / "Book Two.pdf")
 
     engine = get_engine(db_url)
     factory = get_session_factory(engine)
@@ -133,8 +113,8 @@ def test_read_only_media_directory_enforcement(db_url: str, tmp_path: Path) -> N
     sub_dir = library_dir / "SciFi"
     sub_dir.mkdir()
 
-    f1 = create_dummy_epub(sub_dir / "Foundation.epub")
-    f2 = create_dummy_pdf(sub_dir / "Manual.pdf")
+    f1 = build_epub(sub_dir / "Foundation.epub", title="Foundation")
+    f2 = build_pdf(sub_dir / "Manual.pdf")
 
     # Set read-only permissions on files and directories (simulating :ro mount)
     os.chmod(f1, 0o444)
@@ -170,8 +150,8 @@ def test_multi_format_book_grouping_same_directory(db_url: str, tmp_path: Path) 
     book_folder = library_dir / "Frank Herbert" / "Dune"
     book_folder.mkdir(parents=True)
 
-    create_dummy_epub(book_folder / "Dune.epub", b"epub version")
-    create_dummy_pdf(book_folder / "Dune.pdf", b"pdf version")
+    build_epub(book_folder / "Dune.epub", title="Dune", chapter_text="epub version")
+    build_pdf(book_folder / "Dune.pdf")
 
     engine = get_engine(db_url)
     factory = get_session_factory(engine)
@@ -196,7 +176,9 @@ def test_modified_file_detected_and_updated(db_url: str, tmp_path: Path) -> None
     """Verify that modifying a file's content updates its hash and size in the database."""
     library_dir = tmp_path / "books"
     library_dir.mkdir()
-    book_file = create_dummy_epub(library_dir / "Book.epub", b"version 1")
+    book_file = build_epub(
+        library_dir / "Book.epub", title="Book", chapter_text="version 1 content"
+    )
 
     engine = get_engine(db_url)
     factory = get_session_factory(engine)
@@ -211,7 +193,7 @@ def test_modified_file_detected_and_updated(db_url: str, tmp_path: Path) -> None
         initial_size = record.file_size_bytes
 
     # Modify file content and advance mtime
-    book_file.write_bytes(b"PK\x03\x04version 2 with longer text")
+    build_epub(book_file, title="Book", chapter_text="version 2 with much longer text content")
     new_mtime = datetime.now(UTC).timestamp() + 5
     os.utime(book_file, (new_mtime, new_mtime))
 
@@ -231,7 +213,7 @@ def test_deleted_file_marks_missing_preserving_progress(db_url: str, tmp_path: P
     """Verify Rule 1 & 3: Deleted file is marked is_missing; progress is NOT deleted."""
     library_dir = tmp_path / "books"
     library_dir.mkdir()
-    book_path = create_dummy_epub(library_dir / "Neuromancer.epub")
+    book_path = build_epub(library_dir / "Neuromancer.epub", title="Neuromancer")
 
     engine = get_engine(db_url)
     factory = get_session_factory(engine)
@@ -284,7 +266,9 @@ def test_restored_file_clears_missing_status(db_url: str, tmp_path: Path) -> Non
     """Verify that restoring a previously missing file resets is_missing to False."""
     library_dir = tmp_path / "books"
     library_dir.mkdir()
-    book_path = create_dummy_epub(library_dir / "Restored.epub", b"content")
+    book_path = build_epub(
+        library_dir / "Restored.epub", title="Restored", chapter_text="stable content"
+    )
 
     engine = get_engine(db_url)
     factory = get_session_factory(engine)
@@ -302,7 +286,7 @@ def test_restored_file_clears_missing_status(db_url: str, tmp_path: Path) -> Non
         assert f.is_missing is True
 
     # Re-create file at same path
-    create_dummy_epub(book_path, b"content")
+    build_epub(book_path, title="Restored", chapter_text="stable content")
     stats = scanner.scan_library(library_dir)
     assert stats.files_updated == 1
 
@@ -316,7 +300,9 @@ def test_moved_renamed_file_detected_by_hash(db_url: str, tmp_path: Path) -> Non
     """Verify that moving/renaming a file updates its path via content hash matching."""
     library_dir = tmp_path / "books"
     library_dir.mkdir()
-    old_file = create_dummy_epub(library_dir / "Original.epub", b"unique novel content")
+    old_file = build_epub(
+        library_dir / "Original.epub", title="Original", chapter_text="unique novel content"
+    )
 
     engine = get_engine(db_url)
     factory = get_session_factory(engine)
@@ -351,7 +337,7 @@ def test_metadata_lookup_job_enqueued_on_new_book(db_url: str, tmp_path: Path) -
     """Verify that newly indexed books enqueue a metadata_lookup task in the jobs table."""
     library_dir = tmp_path / "books"
     library_dir.mkdir()
-    create_dummy_epub(library_dir / "JobTest.epub")
+    build_epub(library_dir / "JobTest.epub", title="JobTest")
 
     engine = get_engine(db_url)
     factory = get_session_factory(engine)
@@ -375,8 +361,8 @@ def test_scan_all_libraries(db_url: str, tmp_path: Path) -> None:
     lib1_dir.mkdir()
     lib2_dir.mkdir()
 
-    create_dummy_epub(lib1_dir / "BookA.epub")
-    create_dummy_pdf(lib2_dir / "BookB.pdf")
+    build_epub(lib1_dir / "BookA.epub", title="BookA")
+    build_pdf(lib2_dir / "BookB.pdf")
 
     engine = get_engine(db_url)
     factory = get_session_factory(engine)
@@ -403,7 +389,7 @@ def test_corrupt_file_skipped_gracefully(db_url: str, tmp_path: Path) -> None:
     """Verify scanner handles corrupt or unreadable files gracefully without crashing."""
     library_dir = tmp_path / "books"
     library_dir.mkdir()
-    create_dummy_epub(library_dir / "Good.epub")
+    build_epub(library_dir / "Good.epub", title="Good")
 
     engine = get_engine(db_url)
     factory = get_session_factory(engine)
@@ -416,3 +402,73 @@ def test_corrupt_file_skipped_gracefully(db_url: str, tmp_path: Path) -> None:
         assert stats.files_added == 0
         assert len(stats.errors) == 1
         assert "I/O Error" in stats.errors[0]
+
+
+def test_corrupt_epub_zip_skipped_gracefully(db_url: str, tmp_path: Path) -> None:
+    """Phase 5 acceptance: malformed containers fail gracefully, never crash the scanner."""
+    library_dir = tmp_path / "books"
+    library_dir.mkdir()
+    # PK magic but garbage after the header: not a valid ZIP container.
+    corrupt = library_dir / "Corrupt.epub"
+    corrupt.write_bytes(b"PK\x03\x04this is not a real zip archive")
+    build_epub(library_dir / "Healthy.epub", title="Healthy")
+
+    engine = get_engine(db_url)
+    factory = get_session_factory(engine)
+    scanner = LibraryScanner(factory)
+
+    stats = scanner.scan_library(library_dir)
+    assert stats.files_discovered == 2
+    assert stats.files_added == 1  # only the healthy EPUB is indexed
+    assert len(stats.errors) == 1
+    assert "Failed to extract metadata" in stats.errors[0]
+
+    with factory() as session:
+        books = session.scalars(select(Book)).all()
+        assert len(books) == 1
+        assert books[0].title == "Healthy"
+
+
+def test_cover_cached_to_config_dir(db_url: str, tmp_path: Path) -> None:
+    """Verify covers are extracted and cached under the config dir, never /books."""
+    library_dir = tmp_path / "books"
+    library_dir.mkdir()
+
+    png_cover = tiny_png_data(width=2, height=2, rgb=(0, 128, 255))
+    build_epub(library_dir / "Covered.epub", title="Covered", cover=png_cover)
+    build_pdf(library_dir / "Document.pdf", title="Document", image=TINY_JPEG)
+
+    before = sorted(p.name for p in library_dir.rglob("*"))
+
+    engine = get_engine(db_url)
+    factory = get_session_factory(engine)
+    scanner = LibraryScanner(factory)
+    stats = scanner.scan_library(library_dir)
+    assert stats.files_added == 2
+    assert len(stats.errors) == 0
+
+    covers_dir = tmp_path / "cache" / "covers"
+    with factory() as session:
+        books = session.scalars(select(Book).order_by(Book.id)).all()
+        assert len(books) == 2
+        for book in books:
+            assert book.cover_path is not None
+            cover_file = Path(book.cover_path)
+            assert cover_file.is_file()
+            assert cover_file.parent == covers_dir
+
+        by_title = {b.title: b for b in books}
+        covered_book = by_title["Covered"]
+        document_book = by_title["Document"]
+        assert covered_book.cover_path is not None
+        assert document_book.cover_path is not None
+        epub_cover = Path(covered_book.cover_path)
+        pdf_cover = Path(document_book.cover_path)
+        assert epub_cover.suffix == ".png"
+        assert epub_cover.read_bytes() == png_cover
+        assert pdf_cover.suffix == ".jpg"
+        assert pdf_cover.read_bytes() == TINY_JPEG
+
+    # Rule 1: media directory contents are untouched.
+    after = sorted(p.name for p in library_dir.rglob("*"))
+    assert before == after

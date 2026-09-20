@@ -70,6 +70,13 @@ All development, dependency management, and testing must use `uv`. Never invoke 
 | **Test Suite** | `uv run pytest` | All unit & integration tests must pass |
 | **Run CLI** | `uv run bookserver <cmd>` | Commands: `serve`, `scan`, `migrate` |
 
+> **Style note — PEP 758 `except` clauses (do not "fix"):** ruff is pinned to
+> `target-version = "py314"`, so its formatter normalizes `except (A, B):` into
+> the unparenthesized PEP 758 form `except A, B:` (valid only on Python 3.14+,
+> which is this project's floor). This looks like a bug but is the enforced
+> house style — see `services/auth.py`. Keep multi-type handlers unparenthesized
+> and let `ruff format` own the decision.
+
 ---
 
 ## 4. Codebase Architecture & Conventions

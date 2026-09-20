@@ -20,6 +20,7 @@ from buku.models.base import utc_now
 from buku.models.book import Author, Book, BookAuthor, BookFile, BookIdentifier, Series
 from buku.models.job import Job
 from buku.models.library import Library
+from buku.scanner.cover import cache_cover
 from buku.scanner.handlers import FormatHandler, get_default_handlers, get_handler_for_file
 from buku.scanner.hasher import compute_file_hash
 
@@ -212,6 +213,9 @@ class LibraryScanner:
                     existing_record.file_hash = file_hash
                     existing_record.is_missing = False
                     existing_record.updated_at = utc_now()
+                    # Refresh the derived cover when content changed; covers are
+                    # disposable cache artifacts (never user-edited metadata).
+                    self._cache_book_cover(existing_record.book, handler, file_path)
                     stats.files_updated += 1
                     continue
 
@@ -277,6 +281,9 @@ class LibraryScanner:
                 db.add(book_file)
                 db.flush()
                 files_by_path[resolved_str] = book_file
+
+                # Cache derived cover image (writes only under config cache)
+                self._cache_book_cover(book, handler, file_path)
 
                 # Queue background metadata enrichment job
                 self._enqueue_metadata_job(db, book.id, library.id)
@@ -390,6 +397,32 @@ class LibraryScanner:
 
         db.flush()
         return book
+
+    def _cache_book_cover(
+        self,
+        book: Book,
+        handler: FormatHandler,
+        file_path: Path,
+    ) -> None:
+        """Extract and cache a cover image for a book (read-only contract).
+
+        Covers are written only under the writable configuration cache
+        (``<config>/cache/covers/``); the media directory is never touched.
+        Failures degrade gracefully with a logged warning.
+        """
+        try:
+            cover_bytes = handler.extract_cover(file_path)
+        except Exception as exc:
+            logger.warning("Cover extraction failed for '%s': %s", file_path, exc)
+            return
+        if not cover_bytes:
+            return
+
+        settings = get_settings()
+        covers_dir = settings.config_dir / "cache" / "covers"
+        cover_path = cache_cover(cover_bytes, book_id=book.id, covers_dir=covers_dir)
+        if cover_path is not None:
+            book.cover_path = cover_path
 
     def _enqueue_metadata_job(self, db: Session, book_id: int, library_id: int) -> None:
         """Queue a background metadata enrichment job."""

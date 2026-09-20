@@ -245,7 +245,7 @@ Extract:
 
 ### Acceptance Criteria
 
-- [ ] Malformed or corrupted files fail gracefully with logged warnings and do not crash the scanner.
+- [x] Malformed or corrupted files fail gracefully with logged warnings and do not crash the scanner.
 
 ---
 

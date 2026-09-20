@@ -22,6 +22,30 @@ class BookMetadata:
     series: str | None = None
     series_index: float | None = None
     identifiers: dict[str, str] = field(default_factory=dict)
+    page_count: int | None = None
+
+
+def parse_filename_metadata(path: Path) -> BookMetadata:
+    """Infer basic title and author from filename conventions.
+
+    Recognizes formats such as:
+    - 'Author - Title.ext'
+    - 'Title.ext'
+    """
+    stem = path.stem.strip()
+    if " - " in stem:
+        parts = stem.split(" - ", 1)
+        author = parts[0].strip()
+        title = parts[1].strip()
+        authors = [author] if author else []
+    else:
+        title = stem
+        authors = []
+
+    return BookMetadata(
+        title=title or path.name,
+        authors=authors,
+    )
 
 
 class FormatHandler(ABC):

@@ -185,7 +185,7 @@ Development follows the 28-phase blueprint detailed in [`plan.md`](plan.md):
 - [x] **Phase 2**: Database and Domain Model (SQLAlchemy & Alembic)
 - [x] **Phase 3**: Authentication and Multi-User (Argon2id & session management)
 - [x] **Phase 4**: Read-Only Library Scanner
-- [ ] **Phase 5**: Format Abstraction (EPUB, CBZ, PDF)
+- [x] **Phase 5**: Format Abstraction (EPUB, CBZ, PDF)
 - [ ] **Phases 6–7**: Metadata Enrichment & Review UI
 - [ ] **Phase 8**: SQLite FTS5 Search
 - [ ] **Phase 9**: Jinja2 + HTMX Web UI

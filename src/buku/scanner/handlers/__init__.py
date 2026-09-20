@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from buku.scanner.handlers.base import BookMetadata, FormatHandler
-from buku.scanner.handlers.fallback import CBZFormatHandler, EPUBFormatHandler, PDFFormatHandler
+from buku.scanner.handlers.base import BookMetadata, FormatHandler, parse_filename_metadata
+from buku.scanner.handlers.cbz import CBZFormatHandler
+from buku.scanner.handlers.epub import EPUBFormatHandler
+from buku.scanner.handlers.pdf import PDFFormatHandler
 
 _DEFAULT_HANDLERS: list[FormatHandler] = [
     EPUBFormatHandler(),
@@ -32,11 +34,12 @@ def get_handler_for_file(
 
 
 __all__ = [
-    "BookMetadata",
     "CBZFormatHandler",
     "EPUBFormatHandler",
     "FormatHandler",
     "PDFFormatHandler",
+    "BookMetadata",
     "get_default_handlers",
     "get_handler_for_file",
+    "parse_filename_metadata",
 ]
