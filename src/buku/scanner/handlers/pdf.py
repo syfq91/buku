@@ -12,6 +12,7 @@ from typing import BinaryIO
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
+from buku.metadata.models import SOURCE_EMBEDDED
 from buku.scanner.handlers.base import BookMetadata, FormatHandler, parse_filename_metadata
 
 logger = logging.getLogger("buku.scanner.pdf")
@@ -80,16 +81,20 @@ class PDFFormatHandler(FormatHandler):
         if info is not None:
             if info.title:
                 meta.title = info.title.strip()
+                meta.sources["title"] = SOURCE_EMBEDDED
             if info.author:
                 meta.authors = [info.author.strip()]
+                meta.sources["authors"] = SOURCE_EMBEDDED
             if info.subject:
                 meta.description = info.subject.strip()
+                meta.sources["description"] = SOURCE_EMBEDDED
             try:
                 normalised = _normalize_date_value(getattr(info, "creation_date", None))
             except ValueError, AttributeError, TypeError:
                 normalised = None
             if normalised:
                 meta.published_date = normalised
+                meta.sources["published_date"] = SOURCE_EMBEDDED
 
         try:
             meta.page_count = len(reader.pages)
@@ -102,6 +107,7 @@ class PDFFormatHandler(FormatHandler):
             lang = root_obj.get("/Lang") if root_obj is not None else None
             if isinstance(lang, str) and lang:
                 meta.language = lang
+                meta.sources["language"] = SOURCE_EMBEDDED
         except AttributeError, TypeError, ValueError:
             pass
 

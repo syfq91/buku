@@ -16,6 +16,7 @@ def test_cli_help() -> None:
     assert "serve" in result.output
     assert "scan" in result.output
     assert "migrate" in result.output
+    assert "enrich" in result.output
 
 
 def test_cli_version() -> None:
@@ -70,6 +71,28 @@ def test_cli_migrate(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Target database" in result.output
     assert cfg_dir.is_dir()
+
+
+def test_cli_enrich_help() -> None:
+    """Verify enrich command exposes --book-id and --limit options."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["enrich", "--help"])
+    assert result.exit_code == 0
+    assert "--book-id" in result.output
+    assert "--limit" in result.output
+
+
+def test_cli_enrich_no_jobs(tmp_path: Path) -> None:
+    """Verify enrich drains zero queued jobs gracefully on a fresh database."""
+    runner = CliRunner()
+    cfg_dir = tmp_path / "cfg"
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(f'[paths]\nconfig_dir = "{cfg_dir}"\n')
+
+    result = runner.invoke(cli, ["enrich", "--config", str(config_file)])
+    assert result.exit_code == 0
+    assert "Metadata enrichment run summary" in result.output
+    assert "Jobs seen     : 0" in result.output
 
 
 def test_no_architecture_specific_checks() -> None:

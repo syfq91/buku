@@ -23,7 +23,7 @@ from buku.models.base import Base, utc_now
 if TYPE_CHECKING:
     from buku.models.collection import CollectionBook
     from buku.models.library import Library
-    from buku.models.metadata import MetadataMatch
+    from buku.models.metadata import MetadataMatch, MetadataProvenance
     from buku.models.progress import ReadingProgress
     from buku.models.representation import Representation
 
@@ -146,6 +146,9 @@ class Book(Base):
     )
     metadata_matches: Mapped[list[MetadataMatch]] = relationship(
         "MetadataMatch", back_populates="book", cascade="all, delete-orphan"
+    )
+    metadata_provenance: Mapped[list[MetadataProvenance]] = relationship(
+        "MetadataProvenance", back_populates="book", cascade="all, delete-orphan"
     )
     representations: Mapped[list[Representation]] = relationship(
         "Representation", back_populates="book", cascade="all, delete-orphan"

@@ -5,7 +5,7 @@ from buku.models.book import Author, Book, BookAuthor, BookFile, BookIdentifier,
 from buku.models.collection import Collection, CollectionBook
 from buku.models.job import Job
 from buku.models.library import Library
-from buku.models.metadata import MetadataMatch, MetadataSource
+from buku.models.metadata import MetadataMatch, MetadataProvenance, MetadataSource
 from buku.models.progress import ReadingProgress
 from buku.models.representation import Representation
 from buku.models.user import Session, User
@@ -22,6 +22,7 @@ __all__ = [
     "Job",
     "Library",
     "MetadataMatch",
+    "MetadataProvenance",
     "MetadataSource",
     "ReadingProgress",
     "Representation",

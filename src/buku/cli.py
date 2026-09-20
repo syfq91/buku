@@ -200,6 +200,72 @@ def migrate(config_file: Path | None) -> None:
     click.echo("Database migrations applied successfully.")
 
 
+@cli.command()
+@click.option(
+    "--book-id",
+    type=int,
+    default=None,
+    help="Enrich a single book by ID (default: drain queued metadata_lookup jobs).",
+)
+@click.option(
+    "--limit",
+    type=int,
+    default=50,
+    show_default=True,
+    help="Maximum number of queued jobs to process in one invocation.",
+)
+@click.option(
+    "--config",
+    "config_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Path to TOML configuration file.",
+)
+def enrich(book_id: int | None, limit: int, config_file: Path | None) -> None:
+    """Look up missing metadata from external providers (e.g. Google Books).
+
+    Fills only fields that are missing and not user-edited. Without --book-id,
+    drains queued ``metadata_lookup`` jobs produced by the scanner.
+    """
+    settings = load_settings(config_file=config_file)
+    set_settings(settings)
+    setup_logging(debug=settings.debug)
+
+    settings.ensure_directories()
+    from buku.db import get_engine, get_session_factory, run_migrations
+    from buku.metadata.enrichment import MetadataEnrichmentService, process_metadata_jobs
+
+    run_migrations(settings.effective_database_url)
+    engine = get_engine(settings.effective_database_url)
+    factory = get_session_factory(engine)
+    service = MetadataEnrichmentService()
+
+    if book_id is not None:
+        with factory() as db:
+            try:
+                result = service.enrich_book(db, book_id)
+                db.commit()
+            except ValueError as e:
+                click.echo(f"Error: {e}", err=True)
+                sys.exit(1)
+        click.echo(f"Enriched book id={book_id}")
+        click.echo(f"  Candidates   : {len(result.candidates)}")
+        click.echo(f"  Accepted     : {'yes' if result.accepted else 'no'}")
+        click.echo(f"  Fields applied: {', '.join(sorted(result.fields_applied)) or '(none)'}")
+        click.echo(f"  Confidence   : {result.accepted.confidence:.2f}" if result.accepted else "")
+        return
+
+    with factory() as db:
+        stats = process_metadata_jobs(db, service=service, limit=limit)
+        db.commit()
+    click.echo("Metadata enrichment run summary:")
+    click.echo(f"  Jobs seen     : {stats.jobs_seen}")
+    click.echo(f"  Jobs completed: {stats.jobs_completed}")
+    click.echo(f"  Jobs failed   : {stats.jobs_failed}")
+    click.echo(f"  Books enriched: {stats.books_enriched}")
+    click.echo(f"  Fields applied: {stats.fields_applied}")
+
+
 @cli.group()
 def user() -> None:
     """Manage user accounts."""

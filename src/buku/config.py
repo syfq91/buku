@@ -106,6 +106,9 @@ class Settings(BaseSettings):
     # Database connection URL (defaults to sqlite in config_dir)
     database_url: str | None = None
 
+    # Google Books metadata enrichment (optional API key)
+    google_books_api_key: str | None = None
+
     @property
     def effective_database_url(self) -> str:
         """Return explicitly configured database URL or SQLite DB inside config_dir."""
@@ -148,6 +151,7 @@ def load_settings(
         "BOOKSERVER_CONFIG_DIR": "config_dir",
         "BOOKSERVER_BOOKS_DIR": "books_dir",
         "BOOKSERVER_DATABASE_URL": "database_url",
+        "BOOKSERVER_GOOGLE_BOOKS_API_KEY": "google_books_api_key",
     }
     for env_var, setting_key in env_mapping.items():
         val = os.environ.get(env_var)

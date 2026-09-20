@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from buku.config import get_settings
+from buku.metadata.provenance import provenance_service
 from buku.models.base import utc_now
 from buku.models.book import Author, Book, BookAuthor, BookFile, BookIdentifier, Series
 from buku.models.job import Job
@@ -394,6 +395,11 @@ class LibraryScanner:
                 identifier_value=cleaned_val,
             )
             db.add(ident)
+
+        # 5. Record per-field provenance (embedded / filename fallback) so
+        # automated enrichment never overwrites user-edited attributes later.
+        if getattr(meta, "sources", None):
+            provenance_service.mark_many(db, book.id, meta.sources)
 
         db.flush()
         return book

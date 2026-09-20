@@ -21,6 +21,7 @@ from typing import BinaryIO
 from urllib.parse import unquote
 from xml.etree import ElementTree as ET
 
+from buku.metadata.models import SOURCE_EMBEDDED, SOURCE_FILENAME
 from buku.scanner.archive import (
     ArchiveSafetyError,
     find_member,
@@ -310,11 +311,37 @@ class EPUBFormatHandler(FormatHandler):
                 published_date = _normalize_date(_text(meta_data["dates"][0]))
 
             # Graceful fallback to filename conventions for malformed documents.
+            title_from_filename = False
+            authors_from_filename = False
             if not title:
                 fallback = parse_filename_metadata(path)
                 title = fallback.title
+                title_from_filename = True
                 if not authors:
                     authors = fallback.authors
+                    authors_from_filename = True
+
+            # Per-field provenance: OPF-derived fields are "embedded";
+            # anything taken from the filename is a weak "filename" fallback.
+            sources: dict[str, str] = {}
+            if title:
+                sources["title"] = SOURCE_FILENAME if title_from_filename else SOURCE_EMBEDDED
+            if authors:
+                sources["authors"] = SOURCE_FILENAME if authors_from_filename else SOURCE_EMBEDDED
+            if subtitle:
+                sources["subtitle"] = SOURCE_EMBEDDED
+            if description:
+                sources["description"] = SOURCE_EMBEDDED
+            if publisher:
+                sources["publisher"] = SOURCE_EMBEDDED
+            if published_date:
+                sources["published_date"] = SOURCE_EMBEDDED
+            if language:
+                sources["language"] = SOURCE_EMBEDDED
+            if series or series_index is not None:
+                sources["series"] = SOURCE_EMBEDDED
+            if identifiers:
+                sources["identifiers"] = SOURCE_EMBEDDED
 
             return BookMetadata(
                 title=title,
@@ -327,6 +354,7 @@ class EPUBFormatHandler(FormatHandler):
                 series=series,
                 series_index=series_index,
                 identifiers=identifiers,
+                sources=sources,
             )
 
     def extract_cover(self, path: Path) -> bytes | None:

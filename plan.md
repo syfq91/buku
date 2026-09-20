@@ -292,8 +292,8 @@ Every imported attribute tracks its source:
 
 ### Acceptance Criteria
 
-- [ ] For a book containing an ISBN: query Google Books, find match, and populate missing metadata.
-- [ ] Existing user edits remain untouched during future rescans.
+- [x] For a book containing an ISBN: query Google Books, find match, and populate missing metadata.
+- [x] Existing user edits remain untouched during future rescans.
 
 ---
 

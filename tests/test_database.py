@@ -23,6 +23,7 @@ from buku.models import (
     Job,
     Library,
     MetadataMatch,
+    MetadataProvenance,
     MetadataSource,
     ReadingProgress,
     Representation,
@@ -70,8 +71,9 @@ def test_migrations_create_all_tables(migrated_db: str) -> None:
         assert session.scalar(select(BookAuthor).limit(1)) is None
         assert session.scalar(select(BookIdentifier).limit(1)) is None
         assert session.scalar(select(ReadingProgress).limit(1)) is None
-        assert session.scalar(select(MetadataSource).limit(1)) is None
+        assert session.scalar(select(MetadataSource).limit(1)) is not None  # seeded
         assert session.scalar(select(MetadataMatch).limit(1)) is None
+        assert session.scalar(select(MetadataProvenance).limit(1)) is None
         assert session.scalar(select(Representation).limit(1)) is None
         assert session.scalar(select(Job).limit(1)) is None
         assert session.scalar(select(Collection).limit(1)) is None

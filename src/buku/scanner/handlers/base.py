@@ -1,28 +1,19 @@
-"""Abstract base class and data containers for book format handlers."""
+"""Abstract base class and data containers for book format handlers.
+
+``BookMetadata`` lives in :mod:`buku.metadata.models` (the shared metadata
+architecture data structure, Phase 6) and is re-exported here for scanner
+convenience.
+"""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import BinaryIO
 
+from buku.metadata.models import SOURCE_FILENAME, BookMetadata
 
-@dataclass
-class BookMetadata:
-    """Standardized metadata extracted from book files."""
-
-    title: str
-    subtitle: str | None = None
-    authors: list[str] = field(default_factory=list)
-    description: str | None = None
-    publisher: str | None = None
-    published_date: str | None = None
-    language: str | None = None
-    series: str | None = None
-    series_index: float | None = None
-    identifiers: dict[str, str] = field(default_factory=dict)
-    page_count: int | None = None
+__all__ = ["BookMetadata", "FormatHandler", "parse_filename_metadata"]
 
 
 def parse_filename_metadata(path: Path) -> BookMetadata:
@@ -31,6 +22,9 @@ def parse_filename_metadata(path: Path) -> BookMetadata:
     Recognizes formats such as:
     - 'Author - Title.ext'
     - 'Title.ext'
+
+    Fields populated here carry ``filename`` provenance so automated enrichment
+    can treat them as weak fallbacks.
     """
     stem = path.stem.strip()
     if " - " in stem:
@@ -42,9 +36,17 @@ def parse_filename_metadata(path: Path) -> BookMetadata:
         title = stem
         authors = []
 
+    sources: dict[str, str] = {}
+    title = title or path.name
+    if title:
+        sources["title"] = SOURCE_FILENAME
+    if authors:
+        sources["authors"] = SOURCE_FILENAME
+
     return BookMetadata(
-        title=title or path.name,
+        title=title,
         authors=authors,
+        sources=sources,
     )
 
 
