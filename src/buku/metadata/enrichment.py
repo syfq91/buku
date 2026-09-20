@@ -19,17 +19,13 @@ from dataclasses import dataclass, field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from buku.metadata.application import apply_fields
 from buku.metadata.matching import DEFAULT_MIN_CONFIDENCE, build_query
-from buku.metadata.models import (
-    SOURCE_GOOGLE_BOOKS,
-    MetadataMatch,
-    MetadataQuery,
-    populated_fields,
-)
+from buku.metadata.models import SOURCE_GOOGLE_BOOKS, MetadataMatch, MetadataQuery
 from buku.metadata.provenance import provenance_service
 from buku.metadata.provider import MetadataProvider, get_default_providers
 from buku.models.base import utc_now
-from buku.models.book import Author, Book, BookAuthor, BookIdentifier, Series
+from buku.models.book import Book
 from buku.models.metadata import MetadataMatch as MetadataMatchRecord
 
 logger = logging.getLogger("buku.metadata.enrichment")
@@ -87,10 +83,6 @@ class MetadataEnrichmentService:
 
         result.accepted = accepted
         result.fields_applied = self._apply_candidate(db, book, accepted)
-        if result.fields_applied:
-            self.provenance.mark_many(
-                db, book.id, {field: SOURCE_GOOGLE_BOOKS for field in result.fields_applied}
-            )
         # Record the accepted candidate regardless so the Phase 7 review UI can
         # audit (and re-apply) the automatic decision.
         self._record_acceptance(db, book.id, accepted)
@@ -158,110 +150,19 @@ class MetadataEnrichmentService:
     # Field application (never overwrites user edits)
     # ------------------------------------------------------------------ #
     def _apply_candidate(self, db: Session, book: Book, match: MetadataMatch) -> list[str]:
-        """Apply missing, non-user-edited fields from the accepted match."""
-        meta = match.metadata
-        user_fields = self.provenance.user_edited_fields(db, book.id)
-        candidate_fields = populated_fields(meta)
-        applied: list[str] = []
+        """Apply missing, non-user-edited fields from the accepted match.
 
-        if (
-            book.subtitle is None
-            and "subtitle" in candidate_fields
-            and "subtitle" not in user_fields
-        ):
-            book.subtitle = meta.subtitle
-            applied.append("subtitle")
-        if (
-            book.description is None
-            and "description" in candidate_fields
-            and "description" not in user_fields
-        ):
-            book.description = meta.description
-            applied.append("description")
-        if (
-            book.publisher is None
-            and "publisher" in candidate_fields
-            and "publisher" not in user_fields
-        ):
-            book.publisher = meta.publisher
-            applied.append("publisher")
-        if "published_date" in candidate_fields and "published_date" not in user_fields:
-            if book.published_date is None:
-                book.published_date = meta.published_date
-                applied.append("published_date")
-        if "language" in candidate_fields and "language" not in user_fields:
-            if book.language is None:
-                book.language = meta.language
-                applied.append("language")
-        if "series" in candidate_fields and "series" not in user_fields:
-            if self._series_missing(book):
-                self._apply_series(db, book, meta.series, meta.series_index)
-                applied.append("series")
-        if "authors" in candidate_fields and "authors" not in user_fields:
-            if not book.author_links:
-                self._apply_authors(db, book, meta.authors)
-                applied.append("authors")
-        if "identifiers" in candidate_fields and "identifiers" not in user_fields:
-            isbn = meta.identifiers.get("isbn")
-            if isbn and not self._has_identifier(db, book.id, "isbn"):
-                db.add(
-                    BookIdentifier(
-                        book_id=book.id,
-                        identifier_type="isbn",
-                        identifier_value=isbn.strip(),
-                    )
-                )
-                applied.append("identifiers")
-
-        if applied:
-            book.updated_at = utc_now()
-        return applied
-
-    # ------------------------------------------------------------------ #
-    # Field-level helpers
-    # ------------------------------------------------------------------ #
-    def _series_missing(self, book: Book) -> bool:
-        return book.series_id is None
-
-    def _apply_series(
-        self,
-        db: Session,
-        book: Book,
-        series_name: str | None,
-        series_index: float | None,
-    ) -> None:
-        name = (series_name or "").strip()
-        if not name:
-            return
-        series = db.scalar(select(Series).where(Series.name == name))
-        if series is None:
-            series = Series(name=name)
-            db.add(series)
-            db.flush()
-        book.series_id = series.id
-        book.series_index = series_index
-
-    def _apply_authors(self, db: Session, book: Book, author_names: list[str]) -> None:
-        for name in author_names:
-            cleaned = name.strip()
-            if not cleaned:
-                continue
-            author = db.scalar(select(Author).where(Author.name == cleaned))
-            if author is None:
-                author = Author(name=cleaned)
-                db.add(author)
-                db.flush()
-            db.add(BookAuthor(book_id=book.id, author_id=author.id, role="author"))
-
-    def _has_identifier(self, db: Session, book_id: int, identifier_type: str) -> bool:
-        return (
-            db.scalar(
-                select(BookIdentifier.id).where(
-                    BookIdentifier.book_id == book_id,
-                    BookIdentifier.identifier_type == identifier_type,
-                )
-            )
-            is not None
+        Delegates to :func:`buku.metadata.application.apply_fields` — the same
+        shared logic the Phase 7 review UI uses — so automation and curation
+        always agree on what "apply" means.
+        """
+        return apply_fields(
+            db,
+            book,
+            match.metadata,
+            missing_only=True,
+            user_safe=True,
+            provenance_source=SOURCE_GOOGLE_BOOKS,
         )
 
     # ------------------------------------------------------------------ #

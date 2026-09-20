@@ -55,9 +55,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = active_settings
 
     # Include routers
-    from buku.api import auth_router
+    from buku.api import admin_metadata_router, auth_router
 
     app.include_router(auth_router)
+    app.include_router(admin_metadata_router)
 
     @app.get("/health", tags=["System"])
     async def health() -> dict[str, Any]:

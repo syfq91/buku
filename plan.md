@@ -315,6 +315,22 @@ Book ──► Metadata Matches ──► Review ──► Apply Selected / Miss
 - Reject match.
 - Never automatically overwrite existing user metadata.
 
+### Acceptance Criteria
+
+- [x] Admin-only review endpoints expose pending matches with the current
+      metadata side-by-side (`GET /api/v1/admin/metadata/review`,
+      `GET /api/v1/admin/metadata/books/{book_id}`).
+- [x] A review can apply all missing fields from a candidate without touching
+      user-edited fields (`POST .../matches/{match_id}/apply-missing`).
+- [x] A review can apply a hand-picked subset of candidate fields
+      (`POST .../matches/{match_id}/apply-fields`).
+- [x] Manual metadata edits are persisted with `user` provenance and protected
+      from later automated enrichment (`PUT .../books/{book_id}`).
+- [x] A candidate match can be rejected so it leaves the pending queue
+      (`POST .../matches/{match_id}/reject`).
+- [x] Applied fields are re-provenanced to their provider source; user edits
+      are never automatically overwritten.
+
 ---
 
 ## Phase 8: Search

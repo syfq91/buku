@@ -187,7 +187,7 @@ Development follows the 28-phase blueprint detailed in [`plan.md`](plan.md):
 - [x] **Phase 4**: Read-Only Library Scanner
 - [x] **Phase 5**: Format Abstraction (EPUB, CBZ, PDF)
 - [x] **Phase 6**: Metadata Enrichment & Provenance (Google Books, user-edit-safe)
-- [ ] **Phase 7**: Metadata Review UI
+- [x] **Phase 7**: Metadata Review UI (admin API: side-by-side review, apply missing/selected, manual edit, reject)
 - [ ] **Phase 8**: SQLite FTS5 Search
 - [ ] **Phase 9**: Jinja2 + HTMX Web UI
 - [ ] **Phases 10–11**: Reading Progression & Browser EPUB Reader
