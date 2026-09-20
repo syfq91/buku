@@ -11,6 +11,9 @@ wheels/
 .ruff_cache/
 .mypy_cache/
 
+# Agent harness scaffolding (not project source)
+.agents/
+
 # Virtual environments
 .venv/
 
