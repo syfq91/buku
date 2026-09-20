@@ -515,6 +515,43 @@ Build an integrated browser reader.
 - Save on navigation and save on exit (beforeunload) where possible.
 - Use the central `ProgressionService` identical to OPDS sync.
 
+### Acceptance Criteria
+
+- [x] `GET /reader/{book_id}` renders the in-browser reader for any EPUB
+      attached to a logical book: a Table of Contents sidebar (EPUB3 `nav`
+      document with nested entries, falling back to the EPUB2 NCX
+      `navMap`), a chapter content frame, Previous/Next controls, and a
+      visible progress indicator.
+- [x] Reading order comes from the OPF spine: `GET /reader/{book_id}/chapter/{pos}`
+      serves the spine item's XHTML as a standalone document with relative
+      `href`/`src`/`xlink:href` references rewritten — cross-chapter links
+      target the chapter endpoint (fragments preserved), and images/CSS/fonts
+      target `GET /reader/{book_id}/resource/{member}`.
+- [x] Resources are served with correct content types and are confined to the
+      archive's verified manifest member list; `..`/absolute/encoded traversal
+      and non-manifest members are rejected (`404`), and CSS is served with
+      relative `url()` references rewritten to the resource endpoint.
+- [x] Chapter documents are served with a restrictive Content-Security-Policy
+      (`script-src 'none'`, same-origin/`data:`/`blob:` for media) so embedded
+      EPUB scripts never execute inside the reader.
+- [x] The reader resumes at the user's last stored position: the stored
+      `href` maps back to its spine index, the chapter frame opens there, and
+      the stored `fragment` is applied after load.
+- [x] The reader writes progress through the central `/api/v1/progress/{book_id}`
+      REST API (the same `ProgressionService` that OPDS sync uses): saves run
+      on navigation and TOC jumps, periodically while reading, and on
+      `visibilitychange`/`pagehide`/`beforeunload`; `409` conflicts from a
+      newer remote position are ignored locally.
+- [x] Progress value is computed from spine position plus in-chapter scroll
+      fraction within `[0.0, 1.0]`, with the locator recorded as
+      `href` + DOM-anchor `fragment`.
+- [x] Books without an EPUB, missing files, and corrupt/unparseable packages
+      render a graceful reader empty state instead of an error, and their
+      chapter/resource endpoints return `404`.
+- [x] All reader serving is read-only and delegates to `ReaderService`
+      (parsed structure cached by file identity); no request writes to the
+      media directory or the archive.
+
 ---
 
 ## Phase 12: OPDS 1.2 Catalog

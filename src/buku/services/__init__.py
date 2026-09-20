@@ -10,6 +10,14 @@ from buku.services.progression import (
     ProgressionStatus,
     progression_service,
 )
+from buku.services.reader import (
+    ReaderBook,
+    ReaderChapter,
+    ReaderError,
+    ReaderService,
+    ReaderTocEntry,
+    reader_service,
+)
 from buku.services.search import SearchService, search_service
 
 __all__ = [
@@ -20,6 +28,11 @@ __all__ = [
     "MetadataReviewService",
     "ProgressionService",
     "ProgressionStatus",
+    "ReaderBook",
+    "ReaderChapter",
+    "ReaderError",
+    "ReaderService",
+    "ReaderTocEntry",
     "Role",
     "SearchService",
     "admin_service",
@@ -27,6 +40,7 @@ __all__ = [
     "authorization_service",
     "catalog_service",
     "progression_service",
+    "reader_service",
     "review_service",
     "search_service",
 ]

@@ -9,6 +9,7 @@ functions and nothing here ever writes to the media directories.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Annotated, Any
 from urllib.parse import quote
@@ -19,12 +20,19 @@ from sqlalchemy.orm import Session as DbSession
 
 from buku.api.deps import extract_session_token
 from buku.db import get_db
+from buku.models.book import Book, BookFile
 from buku.models.user import User
 from buku.services.admin import admin_service
 from buku.services.auth import auth_service
 from buku.services.authorization import authorization_service
 from buku.services.catalog import catalog_service
 from buku.services.metadata_review import review_service
+from buku.services.reader import (
+    ReaderBook,
+    ReaderError,
+    guess_content_type,
+    reader_service,
+)
 from buku.services.search import search_service
 from buku.web.templates import templates
 
@@ -266,8 +274,51 @@ def search_results_fragment(
 
 
 # --------------------------------------------------------------------------- #
-# Reader placeholder (the full web reader ships later)
+# Web reader (Phase 11) — EPUB rendering, chapter serving, resource serving
 # --------------------------------------------------------------------------- #
+# Chapter documents are served with a Content-Security-Policy that disables
+# scripts (EPUB content is untrusted input) while allowing same-origin book
+# resources. All member access goes through ReaderService, which validates
+# against the archive's verified member list — traversal can never escape.
+_CHAPTER_CSP = (
+    "default-src 'self' data: blob:; "
+    "script-src 'none'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob:; "
+    "font-src 'self' data:; "
+    "media-src 'self' blob:; "
+    "object-src 'none'; "
+    "base-uri 'none'"
+)
+
+
+def _first_epub(book: Book) -> BookFile | None:
+    """Return the first present EPUB file attached to a logical book."""
+    for file_row in book.files:
+        if file_row.file_format.lower() == "epub" and not file_row.is_missing:
+            return file_row
+    return None
+
+
+def _open_reader(book: Book) -> tuple[ReaderBook | None, str | None]:
+    """Resolve the book's EPUB and parse it.
+
+    Returns ``(reader, None)`` on success or ``(None, reason)`` when the
+    title has no EPUB / the file is gone / the package is unreadable, so the
+    reader page can show a graceful empty state instead of an error page.
+    """
+    epub = _first_epub(book)
+    if epub is None:
+        return None, "This title has no EPUB to open in the browser."
+    path = catalog_service.file_download_path(epub)
+    if path is None or not path.is_file():
+        return None, "The EPUB file for this title could not be found."
+    try:
+        return reader_service.get_reader(path), None
+    except ReaderError:
+        return None, "This EPUB could not be opened."
+
+
 @router.get("/reader/{book_id}", include_in_schema=False)
 def reader_page(
     request: Request,
@@ -275,11 +326,111 @@ def reader_page(
     db: Annotated[DbSession, Depends(get_db)],
     user: Annotated[User, Depends(page_user)],
 ) -> Response:
-    """Reader shell; the web reader experience lands in a later phase."""
+    """Full in-browser reader: TOC sidebar, chapter frame, progress saving."""
     book = catalog_service.get_book(db, book_id)
     if book is None:
         return _not_found(request)
-    return _render(request, "reader.html", {"book": book})
+
+    reader, unavailable = _open_reader(book)
+    start_index = 0
+    start_fragment = ""
+    chapter_hrefs: list[str] = []
+    if reader is not None:
+        chapter_hrefs = [chapter.href for chapter in reader.chapters]
+        progress = catalog_service.progress_for_user(db, user.id, book_id)
+        if progress is not None and progress.href:
+            start = reader.chapter_index(progress.href)
+            if start is not None:
+                start_index = start
+                start_fragment = progress.fragment or ""
+
+    return _render(
+        request,
+        "reader.html",
+        {
+            "book": book,
+            "reader": reader,
+            "unavailable": unavailable,
+            "start_index": start_index,
+            "start_fragment": start_fragment,
+            "chapter_hrefs": json.dumps(chapter_hrefs),
+        },
+    )
+
+
+@router.get("/reader/{book_id}/chapter/{pos}", include_in_schema=False)
+def reader_chapter(
+    request: Request,
+    book_id: int,
+    pos: int,
+    db: Annotated[DbSession, Depends(get_db)],
+    user: Annotated[User, Depends(page_user)],
+) -> Response:
+    """Serve a single spine chapter with links rewritten for the reader."""
+    book = catalog_service.get_book(db, book_id)
+    if book is None:
+        raise HTTPException(status_code=404, detail="Book not found.")
+    reader, _ = _open_reader(book)
+    epub = _first_epub(book)
+    path = catalog_service.file_download_path(epub) if epub is not None else None
+    if (
+        reader is None
+        or path is None
+        or not path.is_file()
+        or pos < 0
+        or pos >= len(reader.chapters)
+    ):
+        raise HTTPException(status_code=404, detail="Chapter not found.")
+    try:
+        body, content_type = reader_service.chapter_document(path, reader, book_id, pos)
+    except ReaderError:
+        raise HTTPException(status_code=404, detail="Chapter could not be read.") from None
+    return Response(
+        body,
+        media_type=content_type,
+        headers={
+            "Content-Security-Policy": _CHAPTER_CSP,
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@router.get("/reader/{book_id}/resource/{member:path}", include_in_schema=False)
+def reader_resource(
+    request: Request,
+    book_id: int,
+    member: str,
+    db: Annotated[DbSession, Depends(get_db)],
+    user: Annotated[User, Depends(page_user)],
+) -> Response:
+    """Serve a raw EPUB resource (image, CSS, font, ...)."""
+    book = catalog_service.get_book(db, book_id)
+    if book is None:
+        raise HTTPException(status_code=404, detail="Book not found.")
+    reader, _ = _open_reader(book)
+    epub = _first_epub(book)
+    path = catalog_service.file_download_path(epub) if epub is not None else None
+    member = member.lstrip("/")
+    if reader is None or path is None or not path.is_file() or member not in reader.members:
+        raise HTTPException(status_code=404, detail="Resource not found.")
+    content_type = guess_content_type(member)
+    try:
+        if content_type == "text/css":
+            body = reader_service.css_bytes(path, reader, book_id, member)
+            content_type = "text/css; charset=utf-8"
+        else:
+            body = reader_service.resource(path, reader, member)
+    except ReaderError:
+        raise HTTPException(status_code=404, detail="Resource could not be read.") from None
+    return Response(
+        body,
+        media_type=content_type,
+        headers={
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, max-age=3600",
+        },
+    )
 
 
 # --------------------------------------------------------------------------- #

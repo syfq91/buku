@@ -8,7 +8,7 @@
 <script src="/static/htmx.min.js" defer></script>
 <script src="/static/app.js" defer></script>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
 <header class="shelf">
   <a class="brand" href="/dashboard">buku</a>
   <nav aria-label="Primary">

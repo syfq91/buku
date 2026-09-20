@@ -1,22 +1,74 @@
 {% extends "base.html" %}
-{% block title %}Read {{ book.title }} &middot; buku{% endblock %}
+{% block title %}{{ book.title }} &middot; Read &middot; buku{% endblock %}
+{% block body_class %}reading{% endblock %}
 {% block content %}
-<div class="page-head">
-  <h1>{{ book.title }}</h1>
+{% macro toc_items(entries) %}
+  {% for entry in entries %}
+    <li>
+      <a href="#" class="toc-link"
+         data-index="{{ entry.index if entry.index is not none else '' }}"
+         data-href="{{ entry.href or '' }}"
+         data-fragment="{{ entry.fragment or '' }}">{{ entry.label }}</a>
+      {% if entry.children %}<ul>{{ toc_items(entry.children) }}</ul>{% endif %}
+    </li>
+  {% endfor %}
+{% endmacro %}
+<div id="reader"
+     data-book-id="{{ book.id }}"
+     data-progress-api="/api/v1/progress/{{ book.id }}"
+     data-chapter-count="{{ reader.chapters|length if reader else 0 }}"
+     data-chapter-hrefs='{{ chapter_hrefs }}'>
+  <aside id="reader-sidebar" aria-label="Table of contents">
+    <div class="reader-sidebar-head">
+      <span>{{ book.title }}</span>
+      <button id="btn-toc-close" type="button" aria-label="Close contents">&times;</button>
+    </div>
+    {% if reader %}
+      {% if reader.toc %}
+      <ul class="reader-toc">{{ toc_items(reader.toc) }}</ul>
+      {% else %}
+      <ol class="reader-toc reader-spine">
+        {% for chapter in reader.chapters %}
+        <li>
+          <a href="#" class="toc-link" data-index="{{ chapter.index }}"
+             data-href="{{ chapter.href }}" data-fragment="">{{ chapter.title }}</a>
+        </li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+    {% else %}
+      <p class="muted">{{ unavailable or "Nothing to read here." }}</p>
+    {% endif %}
+  </aside>
+
+  <section id="reader-stage">
+    {% if reader %}
+    <div id="reader-topbar">
+      <button id="btn-toc" type="button" aria-expanded="false">Contents</button>
+      <span id="reader-position">{{ reader.chapters[start_index].title }}</span>
+      <span id="reader-progress-label">0%</span>
+      <a class="btn btn-sm" href="/books/{{ book.id }}">Close</a>
+    </div>
+    <div id="reader-progress"><div id="reader-progress-bar"></div></div>
+    <div id="reader-frame-wrap">
+      <iframe id="reader-frame" title="{{ book.title }}"
+              src="/reader/{{ book.id }}/chapter/{{ start_index }}"
+              data-resume-fragment="{{ start_fragment }}"></iframe>
+    </div>
+    <div id="reader-controls">
+      <button id="btn-prev" type="button"
+              {% if start_index <= 0 %}disabled{% endif %}>Previous</button>
+      <button id="btn-next" type="button"
+              {% if start_index >= reader.chapters|length - 1 %}disabled{% endif %}>Next</button>
+    </div>
+    {% else %}
+    <div id="reader-empty">
+      <h1>{{ book.title }}</h1>
+      <p class="lede">{{ unavailable or "This title has no EPUB to open in the browser." }}</p>
+      <p><a class="btn" href="/books/{{ book.id }}">Back to book</a></p>
+    </div>
+    {% endif %}
+  </section>
 </div>
-<p class="lede">The buku web reader opens here in a later phase.</p>
-<p class="muted">Until then, grab a file from the shelf:</p>
-{% if book.files %}
-<section>
-  <div class="actions">
-    {% for file in book.files %}
-    <a class="btn" href="/books/{{ book.id }}/download/{{ file.id }}">
-      Download {{ file.file_format|upper }}
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% else %}
-<p class="empty">No downloadable files for this book.</p>
-{% endif %}
+<script src="/static/reader.js" defer></script>
 {% endblock %}

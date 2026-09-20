@@ -484,7 +484,7 @@ def test_search_results_requires_auth(web_env: WebEnv) -> None:
 # --------------------------------------------------------------------------- #
 # Reader, shelves, settings
 # --------------------------------------------------------------------------- #
-def test_reader_placeholder_page(web_env: WebEnv, tmp_path: Path) -> None:
+def test_reader_page_without_epub_shows_empty_state(web_env: WebEnv, tmp_path: Path) -> None:
     client, factory_cls, _, _ = web_env
     with factory_cls() as db:
         dune = make_book(db, tmp_path / "lib", title="Dune")
@@ -493,7 +493,7 @@ def test_reader_placeholder_page(web_env: WebEnv, tmp_path: Path) -> None:
 
     response = client.get(f"/reader/{book_id}")
     assert response.status_code == 200
-    assert "opens here in a later phase" in response.text
+    assert "has no EPUB to open in the browser" in response.text
 
 
 def test_collections_page_lists_user_shelves(web_env: WebEnv, tmp_path: Path) -> None:
