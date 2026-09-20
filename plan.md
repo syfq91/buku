@@ -473,6 +473,32 @@ ReadingProgress
 - Progress belongs strictly to the **logical Book** (i.e. `user + Book`), not `user + EPUB` or `user + X4 EPUB`.
 - **Conflict handling:** Use modification timestamps. If an incoming update timestamp is older than stored state, return `HTTP 409 Conflict`; otherwise apply update.
 
+### Acceptance Criteria
+
+- [x] A central `ProgressionService` is the single authority for reading
+      progress: scans and every read/write (web dashboard, book detail page,
+      and future reader/OPDS sync) go through it.
+- [x] Progress rows are keyed by the composite `(user_id, book_id)` unique
+      constraint — progress belongs to the logical Book, never a specific
+      EPUB/X4 representation.
+- [x] User A's progress is fully isolated from User B's: reading, writing,
+      and listing never cross user boundaries.
+- [x] `ProgressionService.update` creates or updates a record with the full
+      Phase 10 shape — `progression` (0.0–1.0), `href`, `fragment`, `title`,
+      `modified_at` (UTC), `device_id`, `device_name`.
+- [x] Timestamp conflict resolution: an update strictly older than the stored
+      `modified_at` is rejected (`HTTP 409` with stored + incoming snapshots);
+      newer and equal timestamps are applied and the client timestamp becomes
+      the stored `modified_at`.
+- [x] Timestamps are normalized to aware UTC for comparison even though
+      SQLite stores naive values, so mixed naive/aware client clocks resolve
+      deterministically.
+- [x] `progression` is clamped to `[0.0, 1.0]` and non-finite values are
+      rejected; long locator/device fields are truncated to column limits.
+- [x] `GET /api/v1/progress/{book_id}` and `PUT /api/v1/progress/{book_id}`
+      expose progression to any authenticated user (404 on missing book,
+      409 on stale writes) as thin transport layers over the service.
+
 ---
 
 ## Phase 11: Web EPUB Reader

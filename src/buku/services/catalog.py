@@ -155,27 +155,18 @@ class CatalogService:
         )
 
     def progress_for_user(self, db: Session, user_id: int, book_id: int) -> ReadingProgress | None:
-        """Return the user's reading progress for a book, if any."""
-        return db.scalar(
-            select(ReadingProgress).where(
-                ReadingProgress.user_id == user_id, ReadingProgress.book_id == book_id
-            )
-        )
+        """Return the user's reading progress for a book (canonical store)."""
+        from buku.services.progression import progression_service
+
+        return progression_service.get(db, user_id, book_id)
 
     def reading_shelf(
         self, db: Session, user_id: int, limit: int = 8
     ) -> list[tuple[ReadingProgress, Book]]:
         """Return the user's most recently touched reading progress entries."""
-        rows = list(
-            db.scalars(
-                select(ReadingProgress)
-                .where(ReadingProgress.user_id == user_id)
-                .order_by(ReadingProgress.modified_at.desc())
-                .limit(limit)
-                .options(selectinload(ReadingProgress.book).options(*_BOOK_LOADS))
-            ).all()
-        )
-        return [(row, row.book) for row in rows if row.book is not None]
+        from buku.services.progression import progression_service
+
+        return progression_service.list_recent(db, user_id, limit=limit)
 
     def books_by_ids(self, db: Session, book_ids: list[int]) -> dict[int, Book]:
         """Fetch books by id (used to hydrate full-text search results)."""
