@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}buku{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/htmx.min.js" defer></script>
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<header class="shelf">
+  <a class="brand" href="/dashboard">buku</a>
+  <nav aria-label="Primary">
+    <a href="/dashboard" class="{{ 'active' if active == 'dashboard' }}">Library</a>
+    <a href="/books" class="{{ 'active' if active == 'books' }}">Browse</a>
+    <a href="/search" class="{{ 'active' if active == 'search' }}">Search</a>
+    <a href="/collections" class="{{ 'active' if active == 'collections' }}">Shelves</a>
+    {% if current_user.is_admin %}
+      <a href="/admin/metadata" class="{{ 'active' if active == 'admin' }}">Review</a>
+      <a href="/admin/jobs" class="{{ 'active' if active == 'admin' }}">Jobs</a>
+    {% endif %}
+  </nav>
+  <div class="shelf-user">
+    <span>{{ current_user.display_name }}</span>
+    <a href="/settings">Settings</a>
+    <button hx-post="/logout" hx-swap="none"
+            hx-on::after-request="window.location.assign('/login')">Sign out</button>
+  </div>
+</header>
+<main class="page">
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

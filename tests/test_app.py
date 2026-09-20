@@ -17,12 +17,10 @@ def test_health_endpoint(client: TestClient) -> None:
 
 
 def test_root_endpoint(client: TestClient) -> None:
-    """Verify root endpoint responds with application info."""
-    response = client.get("/")
-    assert response.status_code == 200
-    data = response.json()
-    assert "buku" in data["message"].lower()
-    assert "docs_url" in data
+    """Verify the root lands on sign-in, then the dashboard once authenticated."""
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("/login")
 
 
 def test_app_debug_setting(test_settings: Settings) -> None:

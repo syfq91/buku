@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Search &middot; buku{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Search</h1>
+</div>
+
+<input type="search" name="q" placeholder="Search title, author, ISBN&hellip;" autofocus
+       autocomplete="off" aria-label="Search query"
+       hx-get="/search/results" hx-trigger="input changed delay:300ms, search"
+       hx-target="#search-results" hx-swap="innerHTML">
+
+<p class="muted" id="search-hint">Type to search your library &mdash; &ldquo;dun&rdquo; finds &ldquo;Dune&rdquo;.</p>
+<div id="search-results" aria-live="polite"></div>
+{% endblock %}

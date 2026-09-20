@@ -1,0 +1,127 @@
+<div id="review-body">
+  <div class="page-head">
+    <h1>{{ review.book.title }}</h1>
+    <a class="btn btn-sm" href="/admin/metadata">Back to review queue</a>
+  </div>
+
+  {% if notice %}<p class="message ok">{{ notice }}</p>{% endif %}
+  {% if error %}<p class="message error">{{ error }}</p>{% endif %}
+
+  {% if review.provenance %}
+  <p class="muted">Sources:
+    {% for field, source in review.provenance.items() %}
+      <span class="badge">{{ field }} &middot; {{ source_label(source) }}</span>
+    {% endfor %}
+  </p>
+  {% endif %}
+
+  <h2>Current metadata</h2>
+  <dl class="review-fields">
+    <dt>Title</dt><dd>{{ review.book.title }}</dd>
+    <dt>Subtitle</dt><dd>{{ review.book.subtitle or '&mdash;' }}</dd>
+    <dt>Authors</dt><dd>{{ review.book.authors|join(', ') or '&mdash;' }}</dd>
+    <dt>Series</dt>
+    <dd>
+      {% if review.book.series %}{{ review.book.series }}{% if review.book.series_index %} #{{ review.book.series_index }}{% endif %}{% else %}&mdash;{% endif %}
+    </dd>
+    <dt>Publisher</dt><dd>{{ review.book.publisher or '&mdash;' }}</dd>
+    <dt>Published</dt><dd>{{ review.book.published_date or '&mdash;' }}</dd>
+    <dt>Language</dt><dd>{{ review.book.language or '&mdash;' }}</dd>
+  </dl>
+
+  <hr class="rule">
+
+  <h2>Edit manually</h2>
+  <form method="post" action="/admin/metadata/books/{{ book_id }}"
+        hx-post="/admin/metadata/books/{{ book_id }}"
+        hx-target="#review-body" hx-swap="outerHTML">
+    <div class="manual-grid">
+      <label for="edit-title">Title</label>
+      <input id="edit-title" name="title" type="text" value="{{ review.book.title }}" required>
+
+      <label for="edit-subtitle">Subtitle</label>
+      <input id="edit-subtitle" name="subtitle" type="text" value="{{ review.book.subtitle or '' }}">
+
+      <label for="edit-authors">Authors (comma-separated)</label>
+      <input id="edit-authors" name="authors" type="text" value="{{ review.book.authors|join(', ') }}">
+
+      <label for="edit-series">Series</label>
+      <input id="edit-series" name="series" type="text" value="{{ review.book.series or '' }}">
+
+      <label for="edit-series-index">Series number</label>
+      <input id="edit-series-index" name="series_index" type="number" step="any"
+             value="{{ review.book.series_index or '' }}">
+
+      <label for="edit-publisher">Publisher</label>
+      <input id="edit-publisher" name="publisher" type="text" value="{{ review.book.publisher or '' }}">
+
+      <label for="edit-published-date">Published date</label>
+      <input id="edit-published-date" name="published_date" type="text"
+             value="{{ review.book.published_date or '' }}">
+
+      <label for="edit-language">Language</label>
+      <input id="edit-language" name="language" type="text" value="{{ review.book.language or '' }}">
+
+      <label for="edit-description">Description</label>
+      <textarea id="edit-description" name="description" rows="4">{{ review.book.description or '' }}</textarea>
+    </div>
+    <p class="muted">Manual edits are marked as <em>user</em> provenance and protected from future
+    enrichment.</p>
+    <button class="btn btn-primary" type="submit">Save manual edits</button>
+  </form>
+
+  <hr class="rule">
+
+  <h2>Candidates</h2>
+  {% for candidate in review.candidates %}
+  <section class="cand">
+    <h3>
+      {{ candidate.provider }} &middot; {{ candidate.external_id }}
+      <span class="badge">{{ candidate.status }}</span>
+    </h3>
+    <p class="muted">Confidence {{ (candidate.confidence * 100)|round|int }}%</p>
+
+    {% if candidate.metadata %}
+    <dl class="field-row">
+      {% for field in candidate.offered_fields %}
+        {% set value = show_field(candidate.metadata, field) %}
+        {% if value %}
+        <dt>{{ field_label(field) }}</dt><dd>{{ value }}</dd>
+        {% endif %}
+      {% endfor %}
+    </dl>
+
+    <form method="post"
+          action="/admin/metadata/books/{{ book_id }}/matches/{{ candidate.id }}/apply-fields"
+          hx-post="/admin/metadata/books/{{ book_id }}/matches/{{ candidate.id }}/apply-fields"
+          hx-target="#review-body" hx-swap="outerHTML">
+      <div class="checks">
+        {% for field in candidate.offered_fields %}
+        <label>
+          <input type="checkbox" name="fields" value="{{ field }}"> {{ field_label(field) }}
+        </label>
+        {% endfor %}
+      </div>
+      <button class="btn btn-sm" type="submit">Apply selected fields</button>
+    </form>
+    {% endif %}
+
+    <div class="actions">
+      <form method="post" class="inline"
+            action="/admin/metadata/books/{{ book_id }}/matches/{{ candidate.id }}/apply-missing"
+            hx-post="/admin/metadata/books/{{ book_id }}/matches/{{ candidate.id }}/apply-missing"
+            hx-target="#review-body" hx-swap="outerHTML">
+        <button class="btn btn-sm" type="submit">Apply missing fields</button>
+      </form>
+      <form method="post" class="inline"
+            action="/admin/metadata/books/{{ book_id }}/matches/{{ candidate.id }}/reject"
+            hx-post="/admin/metadata/books/{{ book_id }}/matches/{{ candidate.id }}/reject"
+            hx-target="#review-body" hx-swap="outerHTML">
+        <button class="btn btn-sm btn-danger" type="submit">Reject</button>
+      </form>
+    </div>
+  </section>
+  {% else %}
+  <p class="empty">No metadata candidates for this book.</p>
+  {% endfor %}
+</div>

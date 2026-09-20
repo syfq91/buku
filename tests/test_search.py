@@ -451,8 +451,9 @@ def test_search_endpoint_rejects_oversized_limit(search_env: SearchEnv) -> None:
 def test_search_page_requires_auth(search_env: SearchEnv) -> None:
     client, _factory, _token = search_env
     client.cookies.clear()
-    response = client.get("/search")
-    assert response.status_code == 401
+    response = client.get("/search", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("/login")
 
 
 def test_search_page_renders_html(search_env: SearchEnv) -> None:
@@ -461,7 +462,7 @@ def test_search_page_renders_html(search_env: SearchEnv) -> None:
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert "Search" in response.text
-    assert "/api/v1/search" in response.text
+    assert "/search/results" in response.text
 
 
 # --------------------------------------------------------------------------- #

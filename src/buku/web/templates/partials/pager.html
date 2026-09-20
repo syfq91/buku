@@ -1,0 +1,11 @@
+{% if catalog and catalog.total > catalog.limit %}
+<nav class="pager" aria-label="Pagination">
+  {% if catalog.page > 1 %}
+  <a class="btn btn-sm" href="?page={{ catalog.page - 1 }}{% if q %}&q={{ q }}{% endif %}{% if sort != 'title' %}&sort={{ sort }}{% endif %}">Previous</a>
+  {% endif %}
+  <span class="muted">Page {{ catalog.page }} of {{ catalog.pages }}</span>
+  {% if catalog.page < catalog.pages %}
+  <a class="btn btn-sm" href="?page={{ catalog.page + 1 }}{% if q %}&q={{ q }}{% endif %}{% if sort != 'title' %}&sort={{ sort }}{% endif %}">Next</a>
+  {% endif %}
+</nav>
+{% endif %}

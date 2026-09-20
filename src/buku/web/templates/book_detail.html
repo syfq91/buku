@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ book.title }} &middot; buku{% endblock %}
+{% block content %}
+<section class="detail">
+  <div>
+    {% if cover_url(book) %}
+    <img class="cover" src="{{ cover_url(book) }}" alt="Cover of {{ book.title }}">
+    {% else %}
+    <div class="cover placeholder" aria-label="No cover available">{{ book.title[:1]|upper }}</div>
+    {% endif %}
+  </div>
+  <div>
+    <p class="muted">
+      {% if book.series %}<a href="/series/{{ book.series.id }}">{{ book.series.name }}</a>
+        {% if book.series_index %} &middot; volume {{ book.series_index }}{% endif %}
+      {% else %}&nbsp;{% endif %}
+    </p>
+    <h1>{{ book.title }}</h1>
+    {% if book.subtitle %}<p class="subtitle">{{ book.subtitle }}</p>{% endif %}
+    <p class="muted">{{ author_names(book) }}</p>
+
+    {% if book.description %}<p class="lede">{{ book.description }}</p>{% endif %}
+
+    <dl>
+      {% if book.publisher %}<dt>Publisher</dt><dd>{{ book.publisher }}</dd>{% endif %}
+      {% if book.published_date %}<dt>Published</dt><dd>{{ book.published_date }}</dd>{% endif %}
+      {% if book.language %}<dt>Language</dt><dd>{{ book.language }}</dd>{% endif %}
+      {% for identifier in book.identifiers %}
+        <dt>{{ identifier.identifier_type|upper }}</dt><dd>{{ identifier.identifier_value }}</dd>
+      {% endfor %}
+      <dt>Formats</dt>
+      <dd>
+      {% for file in book.files %}
+        <a class="btn btn-sm" href="/books/{{ book.id }}/download/{{ file.id }}">
+          Download {{ file.file_format|upper }}
+          {% if file.file_size_bytes %}&middot; {{ (file.file_size_bytes / 1048576)|round(1) }} MB{% endif %}
+        </a>
+      {% else %}
+        <span class="muted">No files on the shelf yet.</span>
+      {% endfor %}
+      </dd>
+    </dl>
+
+    <div class="actions">
+      <a class="btn btn-sm" href="/reader/{{ book.id }}">{% if progress %}Continue Reading{% else %}Read{% endif %}</a>
+      {% if author_names(book) and book.library %}
+        <a class="btn btn-sm" href="/books?q={{ book.title[:1] }}">Browse related</a>
+      {% endif %}
+    </div>
+
+    {% if progress %}
+    <p class="muted">You&rsquo;re {{ (progress.progression * 100)|round|int }}% through this book.</p>
+    {% else %}
+    <p class="muted">Not started yet.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

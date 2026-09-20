@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Jobs &middot; buku admin{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Background jobs</h1>
+</div>
+
+<section class="stats">
+  <div class="stat"><b>{{ summary.completed }}</b><span>completed</span></div>
+  <div class="stat"><b>{{ summary.queued + summary.running }}</b><span>in queue</span></div>
+  <div class="stat"><b>{{ summary.failed }}</b><span>failed</span></div>
+</section>
+
+{% if summary.recent %}
+<table class="tbl">
+  <thead>
+    <tr><th class="num">Id</th><th>Type</th><th>Status</th><th class="num">Attempts</th><th>Created</th><th>Finished</th></tr>
+  </thead>
+  <tbody>
+    {% for job in summary.recent %}
+    <tr>
+      <td class="num">{{ job.id[:8] }}</td>
+      <td>{{ job.type }}</td>
+      <td>{{ job.status }}</td>
+      <td class="num">{{ job.attempts }}</td>
+      <td class="num">{{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td class="num">{{ job.finished_at.strftime('%Y-%m-%d %H:%M') if job.finished_at else '&mdash;' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No jobs yet.</p>
+{% endif %}
+{% endblock %}

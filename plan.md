@@ -416,6 +416,39 @@ Implement SQLite FTS5 (Full-Text Search).
 - Personal reading progress & "Continue Reading" button
 - Download options
 
+### Acceptance Criteria
+
+- [x] Browser UI is built with Jinja2 templates + HTMX interactivity and
+      bundled lightweight CSS/JS — no client-side framework.
+- [x] All Phase 9 routes exist: `/login`, `/`, `/dashboard`, `/books`,
+      `/books/{id}`, `/series/{id}`, `/authors/{id}`, `/search`,
+      `/reader/{id}`, `/collections`, `/settings`, `/admin/users`,
+      `/admin/libraries`, `/admin/metadata`, `/admin/jobs`.
+- [x] Anonymous visitors are redirected to `/login` (HTTP 303) with a safe
+      `next` target; already-signed-in users skip the login page.
+- [x] The login page posts to the JSON auth endpoint and stores the
+      server-side session cookie.
+- [x] The book detail page shows cover, title, subtitle, authors, series,
+      description, publication details (publisher, date, language, ISBN),
+      available formats, per-user reading progress with a "Continue Reading"
+      action, and download options.
+- [x] `/books` supports title filtering, sorting, and pagination.
+- [x] `/search` provides search-as-you-type via an HTMX fragment powered by
+      the Phase 8 FTS5 `SearchService`.
+- [x] The admin metadata review pages (queue, book review, apply
+      missing/selected fields, reject, manual edit with `user` provenance)
+      are reachable from the browser and delegate to the Phase 7 review
+      service.
+- [x] Downloads stream only from configured library roots: unknown files 404,
+      missing files serve 410, and paths outside the library root are
+      rejected.
+- [x] `/reader/{id}` serves a reader shell page that the Phase 11 browser
+      EPUB reader will replace.
+- [x] Admin-only pages reject normal users by redirecting (303) to `/`.
+- [x] Routes are thin transport layers: every page delegates data access to
+      the `catalog`, `admin`, `auth`, `search`, and `metadata_review`
+      services — nothing writes to the media directories.
+
 ---
 
 ## Phase 10: Reading & Progression Service

@@ -61,6 +61,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(admin_metadata_router)
     app.include_router(search_router)
 
+    # Phase 9 web UI (Jinja2 + HTMX); provides the browser interface
+    from starlette.staticfiles import StaticFiles
+
+    from buku.web import STATIC_DIR
+    from buku.web.views import router as web_router
+
+    app.include_router(web_router)
+
+    # Bundled static assets (htmx, CSS, JS)
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+    # Cached cover images live under the writable config cache — never media.
+    covers_dir = active_settings.config_dir / "cache" / "covers"
+    covers_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/covers", StaticFiles(directory=str(covers_dir)), name="covers")
+
     @app.get("/health", tags=["System"])
     async def health() -> dict[str, Any]:
         """Health check endpoint."""
@@ -68,15 +84,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "status": "ok",
             "app": "buku",
             "version": __version__,
-        }
-
-    @app.get("/", tags=["System"])
-    async def root() -> dict[str, Any]:
-        """Root status and navigation info."""
-        return {
-            "message": "Welcome to buku - Lightweight Digital Book Server",
-            "version": __version__,
-            "docs_url": "/docs",
         }
 
     return app

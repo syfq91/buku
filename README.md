@@ -189,7 +189,7 @@ Development follows the 28-phase blueprint detailed in [`plan.md`](plan.md):
 - [x] **Phase 6**: Metadata Enrichment & Provenance (Google Books, user-edit-safe)
 - [x] **Phase 7**: Metadata Review UI (admin API: side-by-side review, apply missing/selected, manual edit, reject)
 - [x] **Phase 8**: SQLite FTS5 Search (9-field index, bm25 ranking, pagination, auto-sync from scan/enrichment/review)
-- [ ] **Phase 9**: Jinja2 + HTMX Web UI
+- [x] **Phase 9**: Jinja2 + HTMX Web UI (login, dashboard, catalog, search-as-you-type, shelves, settings, admin console, metadata review)
 - [ ] **Phases 10–11**: Reading Progression & Browser EPUB Reader
 - [ ] **Phases 12–13**: OPDS 1.2 & OPDS Progression 1.0 Sync
 - [ ] **Phases 14–16**: Representation System & On-Demand X4 EPUB Optimization

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Settings &middot; buku{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Settings</h1>
+</div>
+
+<section class="page narrow">
+  <dl>
+    <dt>Username</dt><dd>{{ current_user.username }}</dd>
+    <dt>Display name</dt><dd>{{ current_user.display_name }}</dd>
+    <dt>Role</dt><dd>{{ 'Administrator' if current_user.is_admin else 'Reader' }}</dd>
+  </dl>
+</section>
+
+<hr class="rule">
+
+<h2>Change password</h2>
+<form id="password-form" class="narrow">
+  <label for="old_password">Current password</label>
+  <input id="old_password" name="old_password" type="password" required
+         autocomplete="current-password">
+  <label for="new_password">New password</label>
+  <input id="new_password" name="new_password" type="password" required minlength="8"
+         autocomplete="new-password">
+  <p class="muted">At least 8 characters.</p>
+  <button class="btn btn-primary" type="submit">Update password</button>
+</form>
+<p id="pw-message" hidden></p>
+{% endblock %}

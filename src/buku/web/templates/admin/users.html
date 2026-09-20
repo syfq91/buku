@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Users &middot; buku admin{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Users</h1>
+</div>
+{% if users %}
+<table class="tbl">
+  <thead>
+    <tr><th class="num">#</th><th>Username</th><th>Display name</th><th>Role</th><th>Status</th><th>Joined</th></tr>
+  </thead>
+  <tbody>
+    {% for user_row in users %}
+    <tr>
+      <td class="num">{{ user_row.id }}</td>
+      <td>{{ user_row.username }}</td>
+      <td>{{ user_row.display_name }}</td>
+      <td>{{ 'admin' if user_row.is_admin else 'reader' }}</td>
+      <td>{{ 'active' if user_row.is_active else 'disabled' }}</td>
+      <td class="num">{{ user_row.created_at.strftime('%Y-%m-%d') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No user accounts yet.</p>
+{% endif %}
+{% endblock %}

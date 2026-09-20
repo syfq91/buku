@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Read {{ book.title }} &middot; buku{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ book.title }}</h1>
+</div>
+<p class="lede">The buku web reader opens here in a later phase.</p>
+<p class="muted">Until then, grab a file from the shelf:</p>
+{% if book.files %}
+<section>
+  <div class="actions">
+    {% for file in book.files %}
+    <a class="btn" href="/books/{{ book.id }}/download/{{ file.id }}">
+      Download {{ file.file_format|upper }}
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<p class="empty">No downloadable files for this book.</p>
+{% endif %}
+{% endblock %}

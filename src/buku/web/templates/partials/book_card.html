@@ -1,0 +1,14 @@
+<article class="book-card">
+  <a class="cover-link" href="/books/{{ book.id }}">
+    {% if cover_url(book) %}
+    <img class="cover" src="{{ cover_url(book) }}" alt="" loading="lazy">
+    {% else %}
+    <div class="cover placeholder" aria-label="No cover available">{{ book.title[:1]|upper }}</div>
+    {% endif %}
+  </a>
+  <h3><a href="/books/{{ book.id }}">{{ book.title }}</a></h3>
+  <p class="authors">{{ author_names(book) }}</p>
+  <div class="formats">
+    {% for format_id in format_badges(book) %}<span class="badge">{{ format_id }}</span>{% endfor %}
+  </div>
+</article>

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Libraries &middot; buku admin{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Libraries</h1>
+  <p class="muted">Read-only media roots. buku never writes here.</p>
+</div>
+{% if libraries %}
+<table class="tbl">
+  <thead>
+    <tr><th>Name</th><th>Path</th><th>Added</th></tr>
+  </thead>
+  <tbody>
+    {% for library in libraries %}
+    <tr>
+      <td>{{ library.name }}</td>
+      <td><code>{{ library.path }}</code></td>
+      <td class="num">{{ library.created_at.strftime('%Y-%m-%d') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No library roots configured.</p>
+{% endif %}
+{% endblock %}

@@ -157,8 +157,7 @@ def get_me(user: Annotated[User, Depends(get_current_user)]) -> Any:
     return user
 
 
-@router.get("/admin/users", response_model=list[UserResponse])
-@router.get("/api/v1/admin/users", response_model=list[UserResponse], include_in_schema=False)
+@router.get("/api/v1/admin/users", response_model=list[UserResponse])
 def list_admin_users(
     _admin: Annotated[User, Depends(get_current_admin_user)],
     db: Annotated[DbSession, Depends(get_db)],

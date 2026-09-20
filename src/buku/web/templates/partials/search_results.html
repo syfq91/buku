@@ -1,0 +1,33 @@
+{% if results.items %}
+<p class="muted">{{ results.total }} result{{ 's' if results.total != 1 }} for &ldquo;{{ results.query }}&rdquo;</p>
+<ul class="row-list">
+  {% for item in results.items %}
+  {% set book = books.get(item.book_id) %}
+  <li>
+    <a href="/books/{{ item.book_id }}" class="cover-link">
+      {% if book and cover_url(book) %}
+      <img class="thumb" src="{{ cover_url(book) }}" alt="" loading="lazy">
+      {% else %}
+      <div class="cover placeholder thumb" aria-label="No cover available"></div>
+      {% endif %}
+    </a>
+    <div>
+      <h3><a href="/books/{{ item.book_id }}">{{ item.title }}</a></h3>
+      <p class="muted">
+        {% if item.authors %}{{ item.authors|join(', ') }}{% endif %}
+        {% if item.series %}{% if item.authors %} &middot; {% endif %}{{ item.series }}{% endif %}
+      </p>
+    </div>
+    <div class="formats">
+      {% if book %}
+        {% for format_id in format_badges(book) %}<span class="badge">{{ format_id }}</span>{% endfor %}
+      {% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% elif query %}
+<p class="empty">Nothing found for &ldquo;{{ query }}&rdquo;.</p>
+{% else %}
+<p class="empty">Type above to search.</p>
+{% endif %}

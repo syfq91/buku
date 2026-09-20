@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Shelves &middot; buku{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Your shelves</h1>
+</div>
+
+{% if collections %}
+<div class="book-grid">
+  {% for collection in collections %}
+  <article class="book-card shelf-card">
+    <h3>{{ collection.name }}</h3>
+    <p class="muted">{{ collection.books|length }} book{{ 's' if collection.books|length != 1 }}</p>
+    <div class="shelf-strip">
+      {% for link in collection.books[:5] %}
+        {% if link.book and cover_url(link.book) %}
+          <img class="thumb" src="{{ cover_url(link.book) }}" alt="" loading="lazy">
+        {% endif %}
+      {% endfor %}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">No shelves yet &mdash; personal collections arrive with the reading features.</p>
+{% endif %}
+{% endblock %}

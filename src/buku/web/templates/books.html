@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Browse &middot; buku{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Browse</h1>
+  <form method="get" action="/books" class="inline">
+    <input type="search" name="q" value="{{ q }}" placeholder="Filter by title&hellip;"
+           aria-label="Filter by title">
+    <button class="btn btn-sm" type="submit">Filter</button>
+  </form>
+</div>
+
+<form method="get" action="/books" class="sort-bar">
+  <select name="sort" aria-label="Sort order" onchange="this.form.submit()">
+    <option value="title" {{ 'selected' if sort == 'title' }}>By title</option>
+    <option value="recent" {{ 'selected' if sort == 'recent' }}>Recently added</option>
+  </select>
+  {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+</form>
+
+{% if catalog.items %}
+<div class="book-grid">
+  {% for book in catalog.items %}
+    {% include "partials/book_card.html" %}
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">No books found{% if q %} for &ldquo;{{ q }}&rdquo;{% endif %}.</p>
+{% endif %}
+
+{% include "partials/pager.html" %}
+{% endblock %}

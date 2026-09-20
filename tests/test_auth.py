@@ -159,12 +159,15 @@ def test_admin_only_endpoints_reject_normal_users(
     admin_token = resp_admin.json()["token"]
 
     # Normal user calls admin endpoint -> 403 Forbidden
-    resp_forbidden = client.get("/admin/users", headers={"Authorization": f"Bearer {normal_token}"})
+    resp_forbidden = client.get(
+        "/api/v1/admin/users", headers={"Authorization": f"Bearer {normal_token}"}
+    )
     assert resp_forbidden.status_code == 403
 
     # Admin user calls admin endpoint -> 200 OK
-    resp_allowed = client.get("/admin/users", headers={"Authorization": f"Bearer {admin_token}"})
-    assert resp_allowed.status_code == 200
+    resp_allowed = client.get(
+        "/api/v1/admin/users", headers={"Authorization": f"Bearer {admin_token}"}
+    )
     usernames = [u["username"] for u in resp_allowed.json()]
     assert "admin_user" in usernames
     assert "normal_user" in usernames

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ author.name }} &middot; buku{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ author.name }}</h1>
+</div>
+
+{% set books = author.book_links|map(attribute='book')|select|list %}
+{% if books %}
+<div class="book-grid">
+  {% for book in books %}
+    {% include "partials/book_card.html" %}
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">No books by this author on the shelves yet.</p>
+{% endif %}
+{% endblock %}

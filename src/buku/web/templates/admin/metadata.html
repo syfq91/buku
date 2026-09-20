@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Metadata review &middot; buku admin{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Metadata review</h1>
+</div>
+
+<div class="tabs">
+  <a href="/admin/metadata?status=pending" class="{{ 'active' if status == 'pending' }}">Pending</a>
+  <a href="/admin/metadata?status=applied" class="{{ 'active' if status == 'applied' }}">Applied</a>
+  <a href="/admin/metadata?status=rejected" class="{{ 'active' if status == 'rejected' }}">Rejected</a>
+</div>
+
+{% if items %}
+<table class="tbl">
+  <thead>
+    <tr><th>Book</th><th>Authors</th><th class="num">Pending</th><th class="num">Applied</th><th class="num">Rejected</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.title }}</td>
+      <td>{{ item.authors|join(', ') or '&mdash;' }}</td>
+      <td class="num">{{ item.pending }}</td>
+      <td class="num">{{ item.applied }}</td>
+      <td class="num">{{ item.rejected }}</td>
+      <td><a class="btn btn-sm" href="/admin/metadata/books/{{ item.book_id }}">Review</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if total > 20 %}
+<div class="pager">
+  {% if page > 1 %}<a class="btn btn-sm" href="/admin/metadata?status={{ status }}&page={{ page - 1 }}">Previous</a>{% endif %}
+  <span class="muted">Page {{ page }} of {{ (total / 20)|round(0, 'ceil')|int }}</span>
+  {% if page * 20 < total %}<a class="btn btn-sm" href="/admin/metadata?status={{ status }}&page={{ page + 1 }}">Next</a>{% endif %}
+</div>
+{% endif %}
+{% else %}
+<p class="empty">No books in this state.</p>
+{% endif %}
+{% endblock %}

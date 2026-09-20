@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ series.name }} &middot; buku{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ series.name }}</h1>
+</div>
+{% if series.description %}<p class="lede">{{ series.description }}</p>{% endif %}
+
+{% if series.books %}
+<div class="book-grid">
+  {% for book in series.books %}
+    {% include "partials/book_card.html" %}
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">No books in this series on the shelves yet.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block nav_active %}dashboard{% endblock %}
+{% block title %}Library &middot; buku{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Your library</h1>
+  <p class="muted">Good to see you, {{ current_user.display_name }}.</p>
+</div>
+
+<section class="stats">
+  <div class="stat"><b>{{ stats.books }}</b><span>books</span></div>
+  <div class="stat"><b>{{ stats.series }}</b><span>series</span></div>
+  <div class="stat"><b>{{ stats.authors }}</b><span>authors</span></div>
+  {% for format_id, count in stats.formats.items()|sort %}
+    <div class="stat"><b>{{ count }}</b><span>{{ format_id|upper }}</span></div>
+  {% endfor %}
+</section>
+
+{% if reading %}
+<section>
+  <h2>Continue reading</h2>
+  <div class="book-grid">
+    {% for progress, book in reading %}
+    <article class="book-card">
+      <a class="cover-link" href="/books/{{ book.id }}">
+        {% if cover_url(book) %}
+        <img class="cover" src="{{ cover_url(book) }}" alt="" loading="lazy">
+        {% else %}
+        <div class="cover placeholder" aria-label="No cover available">{{ book.title[:1]|upper }}</div>
+        {% endif %}
+      </a>
+      <h3><a href="/books/{{ book.id }}">{{ book.title }}</a></h3>
+      <p class="authors">{{ author_names(book) }} &middot; {{ (progress.progression * 100)|round|int }}%</p>
+    </article>
+    {% endfor %}
+  </div>
+  <hr class="rule">
+</section>
+{% endif %}
+
+<section>
+  <h2>Recent additions</h2>
+  {% if recent %}
+  <div class="book-grid">
+    {% for book in recent %}
+      {% include "partials/book_card.html" %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">Nothing on the shelves yet — place books in <code>/books</code>, then run
+    <code>bookserver scan</code>.</p>
+  {% endif %}
+</section>
+{% endblock %}
