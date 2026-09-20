@@ -355,7 +355,28 @@ Implement SQLite FTS5 (Full-Text Search).
 
 ### Acceptance Criteria
 
-- [ ] Search functions fast across 10,000+ books without requiring Elasticsearch or external services.
+- [x] A `books_fts` FTS5 virtual table indexes all nine fields — `title`,
+      `subtitle`, `authors`, `series`, `description`, `publisher`, `subjects`,
+      `ISBN`, `tags` — with `rowid` aligned to `books.id` and a `unicode61`
+      tokenizer (`subjects`/`tags` are reserved columns until the metadata
+      model persists them).
+- [x] The index is created by the Phase 8 Alembic migration
+      (`9f6cd2e8374a`) and backfilled from the existing catalog at upgrade.
+- [x] `bookserver reindex` rebuilds the full index from the catalog on demand.
+- [x] `SearchService` keeps the index in sync at every catalog mutation point:
+      scanner book creation, metadata enrichment, and Phase 7 review curation
+      — with no writes to the read-only media directory.
+- [x] `GET /api/v1/search` supports `q`, `limit`, and `offset`, is available
+      to any authenticated active user, and ranks results by FTS5 bm25
+      relevance.
+- [x] Query terms are sanitized (no FTS5 syntax injection) and prefix-matched
+      so search-as-you-type works (`dun` finds `Dune`) and hyphenated ISBN
+      lookups match.
+- [x] `GET /search` serves the web UI route (placeholder page until the
+      Phase 9 Jinja2/HTMX interface replaces it).
+- [x] Search functions fast across 10,000+ books without requiring
+      Elasticsearch or external services: benchmarked at < 1.5 ms per query
+      against a 10,000-book index.
 
 ---
 

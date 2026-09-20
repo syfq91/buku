@@ -17,6 +17,7 @@ def test_cli_help() -> None:
     assert "scan" in result.output
     assert "migrate" in result.output
     assert "enrich" in result.output
+    assert "reindex" in result.output
 
 
 def test_cli_version() -> None:
@@ -93,6 +94,53 @@ def test_cli_enrich_no_jobs(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Metadata enrichment run summary" in result.output
     assert "Jobs seen     : 0" in result.output
+
+
+def test_cli_reindex_empty_db(tmp_path: Path) -> None:
+    """Verify reindex rebuilds the search index gracefully on a fresh database."""
+    runner = CliRunner()
+    cfg_dir = tmp_path / "cfg"
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(f'[paths]\nconfig_dir = "{cfg_dir}"\n')
+
+    result = runner.invoke(cli, ["reindex", "--config", str(config_file)])
+    assert result.exit_code == 0
+    assert "Reindexed 0 books" in result.output
+
+
+def test_cli_reindex_indexes_existing_books(tmp_path: Path) -> None:
+    """Verify reindex rebuilds the search index from the existing catalog."""
+    runner = CliRunner()
+    cfg_dir = tmp_path / "cfg"
+    cfg_dir.mkdir(parents=True, exist_ok=True)
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(f'[paths]\nconfig_dir = "{cfg_dir}"\n')
+
+    from sqlalchemy import select
+
+    from buku.config import load_settings
+    from buku.db import get_engine, get_session_factory, run_migrations
+    from buku.models import Book, Library
+    from buku.services.search import search_service
+
+    settings = load_settings(config_file=config_file)
+    run_migrations(settings.effective_database_url)
+    engine = get_engine(settings.effective_database_url)
+    factory = get_session_factory(engine)
+    with factory() as db:
+        library = Library(name="cli", path="/tmp/cli-reindex")
+        db.add(library)
+        db.flush()
+        db.add(Book(library_id=library.id, title="Dune"))
+        db.commit()
+
+    result = runner.invoke(cli, ["reindex", "--config", str(config_file)])
+    assert result.exit_code == 0
+    assert "Reindexed 1 books" in result.output
+
+    with factory() as db:
+        db.scalars(select(Book)).one()
+        assert search_service.search(db, "Dune").total == 1
 
 
 def test_no_architecture_specific_checks() -> None:

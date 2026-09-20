@@ -266,6 +266,35 @@ def enrich(book_id: int | None, limit: int, config_file: Path | None) -> None:
     click.echo(f"  Fields applied: {stats.fields_applied}")
 
 
+@cli.command()
+@click.option(
+    "--config",
+    "config_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Path to TOML configuration file.",
+)
+def reindex(config_file: Path | None) -> None:
+    """Rebuild the SQLite FTS5 full-text search index from the catalog."""
+    settings = load_settings(config_file=config_file)
+    set_settings(settings)
+    setup_logging(debug=settings.debug)
+
+    settings.ensure_directories()
+    from buku.db import get_engine, get_session_factory, run_migrations
+    from buku.services.search import search_service
+
+    run_migrations(settings.effective_database_url)
+    engine = get_engine(settings.effective_database_url)
+    factory = get_session_factory(engine)
+
+    with factory() as db:
+        count = search_service.rebuild(db)
+        db.commit()
+
+    click.echo(f"Reindexed {count} books into the full-text search index.")
+
+
 @cli.group()
 def user() -> None:
     """Manage user accounts."""

@@ -27,6 +27,7 @@ from buku.metadata.provider import MetadataProvider, get_default_providers
 from buku.models.base import utc_now
 from buku.models.book import Book
 from buku.models.metadata import MetadataMatch as MetadataMatchRecord
+from buku.services.search import search_service
 
 logger = logging.getLogger("buku.metadata.enrichment")
 
@@ -87,6 +88,9 @@ class MetadataEnrichmentService:
         # audit (and re-apply) the automatic decision.
         self._record_acceptance(db, book.id, accepted)
         db.flush()
+        # Keep the FTS5 search index in sync with any applied provider fields.
+        if result.fields_applied:
+            search_service.index_book(db, book)
         return result
 
     # ------------------------------------------------------------------ #

@@ -24,6 +24,7 @@ from buku.models.library import Library
 from buku.scanner.cover import cache_cover
 from buku.scanner.handlers import FormatHandler, get_default_handlers, get_handler_for_file
 from buku.scanner.hasher import compute_file_hash
+from buku.services.search import search_service
 
 logger = logging.getLogger("buku.scanner")
 
@@ -402,6 +403,8 @@ class LibraryScanner:
             provenance_service.mark_many(db, book.id, meta.sources)
 
         db.flush()
+        # 6. Index the new book into the FTS5 full-text search index.
+        search_service.index_book(db, book)
         return book
 
     def _cache_book_cover(

@@ -27,6 +27,7 @@ from buku.metadata.provenance import provenance_service
 from buku.models.base import utc_now
 from buku.models.book import Author, Book, BookAuthor
 from buku.models.metadata import MetadataMatch
+from buku.services.search import search_service
 
 logger = logging.getLogger("buku.services.metadata_review")
 
@@ -201,6 +202,8 @@ class MetadataReviewService:
             provenance_source=candidate.provider,
         )
         self._set_match_status(match, "applied")
+        if applied:
+            search_service.index_book(db, book)
         db.commit()
         skipped = [field for field in candidate.offered_fields if field not in applied]
         return AppliedResult(fields_applied=applied, fields_skipped=skipped)
@@ -226,6 +229,8 @@ class MetadataReviewService:
             provenance_source=candidate.provider,
         )
         self._set_match_status(match, "applied")
+        if applied:
+            search_service.index_book(db, book)
         db.commit()
         skipped = [field for field in fields if field not in applied]
         return AppliedResult(fields_applied=applied, fields_skipped=skipped)
@@ -276,6 +281,7 @@ class MetadataReviewService:
         if applied:
             book.updated_at = utc_now()
             provenance_service.mark_many(db, book.id, {field: SOURCE_USER for field in applied})
+            search_service.index_book(db, book)
         db.commit()
         return AppliedResult(fields_applied=applied, match_status="edited")
 
