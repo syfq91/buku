@@ -18,6 +18,7 @@ from buku.services.reader import (
     ReaderTocEntry,
     reader_service,
 )
+from buku.services.representation import RepresentationService, representation_service
 from buku.services.search import SearchService, search_service
 
 __all__ = [
@@ -33,6 +34,7 @@ __all__ = [
     "ReaderError",
     "ReaderService",
     "ReaderTocEntry",
+    "RepresentationService",
     "Role",
     "SearchService",
     "admin_service",
@@ -41,6 +43,7 @@ __all__ = [
     "catalog_service",
     "progression_service",
     "reader_service",
+    "representation_service",
     "review_service",
     "search_service",
 ]
