@@ -5,9 +5,14 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session, sessionmaker
 
 from buku.app import create_app
 from buku.config import Settings, set_settings
+from buku.db import get_engine, get_session_factory, reset_engine, run_migrations
+from buku.services.auth import auth_service
+
+OpdsEnv = tuple[TestClient, sessionmaker[Session], str, str]
 
 
 @pytest.fixture
@@ -47,3 +52,30 @@ def client(test_settings: Settings) -> Generator[TestClient]:
     app = create_app(test_settings)
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture
+def opds_env(tmp_path: Path) -> Generator[OpdsEnv]:
+    """Provide a migrated DB, two users, and an authenticated client for OPDS tests."""
+    reset_engine()
+    database_file = tmp_path / "opds.db"
+    url = f"sqlite:///{database_file}"
+    settings = Settings(config_dir=tmp_path, database_url=url)
+    set_settings(settings)
+    run_migrations(url)
+
+    app = create_app(settings)
+    factory_cls = get_session_factory(get_engine(url))
+    with TestClient(app) as client:
+        with factory_cls() as db:
+            auth_service.create_user(db, "reader", "readerpass123", "Reader", is_admin=False)
+            auth_service.create_user(db, "admin", "adminpass123", "Admin", is_admin=True)
+        reader_token = client.post(
+            "/api/v1/auth/login", json={"username": "reader", "password": "readerpass123"}
+        ).json()["token"]
+        admin_token = client.post(
+            "/api/v1/auth/login", json={"username": "admin", "password": "adminpass123"}
+        ).json()["token"]
+        yield client, factory_cls, reader_token, admin_token
+    reset_engine()
+    set_settings(None)

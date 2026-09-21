@@ -573,6 +573,36 @@ Implement standard OPDS catalog feeds.
 - Embedded metadata (Atom feed entries).
 - Clean separation between OPDS feed serializers and internal domain models.
 
+### Acceptance Criteria
+
+- [x] `GET /opds` serves a navigation root feed over the catalog sections
+      (Books / Series / Authors) with `self`, `start`, and `search` links to
+      the OpenSearch description.
+- [x] `GET /opds/books`, `GET /opds/series`, and `GET /opds/authors` return
+      acquisition / navigation feeds; series and authors expose acquisition
+      sub-feeds at `GET /opds/series/{id}` / `GET /opds/authors/{id}` and
+      unknown ids answer `404`.
+- [x] Feeds embed deterministic `urn:uuid` ids, Atom metadata (title, updated,
+      authors, `dc:language`/`dc:issued`/`dc:publisher`/`dc:identifier`,
+      `opds:series` category, summary/content), absolute hrefs, and per-format
+      `http://opds-spec.org/acquisition/open-access` links
+      (EPUB/PDF/CBZ with correct media types) pointing at the authenticated
+      download endpoint.
+- [x] Cover/thumbnail artwork links (`http://opds-spec.org/image` and
+      `…/image-thumbnail`) are emitted for books with a cover, and every entry
+      carries an OPDS Progression 1.0 service link to `/opds/progression/{id}`.
+- [x] Books/series/authors/search acquisition feeds paginate via RFC 5005
+      `first`/`previous`/`next`/`last` + `self`/`start`/`up` links; totals
+      surface as `opensearch:totalResults`/`itemsPerPage`.
+- [x] `GET /opds/search?q=` returns an acquisition feed backed by the Phase 8
+      FTS5 engine; `GET /opds/opensearch.xml` enables autodiscovery.
+- [x] `GET /opds/books/{id}/download/{file_id}` streams a publication from the
+      read-only library (`404` unknown, `410` missing/unavailable), validating
+      the resolved path stays inside its library root.
+- [x] All OPDS routes require HTTP Basic or Bearer/session authentication;
+      disabled users are rejected, and every feed is served read-only with the
+      correct OPDS Atom content type.
+
 ---
 
 ## Phase 13: OPDS Progression 1.0
@@ -592,6 +622,28 @@ OPDS Progression API ──► ProgressionService ──► ReadingProgress Tabl
 ### Verification & Synchronization
 - Web reader updates progress $\rightarrow$ verified via `GET /opds/progression/{book_id}`.
 - External OPDS client sends `PUT` $\rightarrow$ Web reader resumes at new position.
+
+### Acceptance Criteria
+
+- [x] `GET /opds/progression/{book_id}` returns the caller's progression as an
+      `application/opds-progression+json` document (`modified`, `device`,
+      `progression`, optional `title`/`references`, locator merged into
+      `references` as `href#fragment`), or an empty payload (`204 No Content`)
+      when no state exists.
+- [x] `PUT /opds/progression/{book_id}` creates (`201`) or updates (`200`)
+      progression solely for the authenticated user via the canonical
+      `ProgressionService`; the `(user_id, book_id)` composite key and strict
+      user isolation are preserved.
+- [x] A payload whose `modified` timestamp is older than the stored state
+      returns `409 Conflict` with an RFC 7807 problem-details body
+      (`type: https://registry.opds.io/error#progression-date`) carrying the
+      stored and incoming documents, leaving the canonical store untouched.
+- [x] Malformed payloads (missing/invalid fields, out-of-range progression,
+      unsupported shapes) return `400` with
+      `type: https://registry.opds.io/error#progression-invalid-payload`.
+- [x] Unknown books return `404`; PUT/GET work over HTTP Basic and Bearer/session
+      authentication alike, and the Web reader can resume at the position an
+      external OPDS client last synced.
 
 ---
 

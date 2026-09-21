@@ -192,7 +192,7 @@ Development follows the 28-phase blueprint detailed in [`plan.md`](plan.md):
 - [x] **Phase 9**: Jinja2 + HTMX Web UI (login, dashboard, catalog, search-as-you-type, shelves, settings, admin console, metadata review)
 - [x] **Phase 10**: Reading & Progression Service (central `ProgressionService`, `(user,book)` keys, timestamp conflict → HTTP 409, `/api/v1/progress` REST)
 - [x] **Phase 11**: Browser EPUB Reader (`ReaderService` + `/reader/{book}` shell, chapter/resource endpoints with link rewriting & CSP, TOC from EPUB3 nav/EPUB2 NCX, prev/next, progress indicator, resume, periodic + exit save via ProgressionService)
-- [ ] **Phases 12–13**: OPDS 1.2 & OPDS Progression 1.0 Sync
+- [x] **Phases 12–13**: OPDS 1.2 Catalog & OPDS Progression 1.0 Sync (root/books/series/authors/search feeds, RFC 5005 pagination, acquisition & artwork links, OpenSearch, OPDS-authenticated downloads, `GET`/`PUT /opds/progression/{id}` with RFC 7807 problem-details conflicts — read-only, ProgressionService-backed, user-isolated)
 - [ ] **Phases 14–16**: Representation System & On-Demand X4 EPUB Optimization
 - [ ] **Phases 17–18**: SQLite Job Queue & Cache System
 - [ ] **Phases 19–20**: Admin Console & Unified REST API
