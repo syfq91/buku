@@ -37,7 +37,7 @@ def reader_env(tmp_path: Path) -> Generator[ReaderEnv]:
     reset_engine()
     database_file = tmp_path / "reader_http.db"
     url = f"sqlite:///{database_file}"
-    settings = Settings(config_dir=tmp_path, database_url=url)
+    settings = Settings(config_dir=tmp_path, database_url=url, jobs_enabled=False)
     set_settings(settings)
     run_migrations(url)
 

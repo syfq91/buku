@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import time
-import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -16,10 +14,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from buku.config import get_settings
+from buku.jobs.queue import enqueue_job
 from buku.metadata.provenance import provenance_service
 from buku.models.base import utc_now
 from buku.models.book import Author, Book, BookAuthor, BookFile, BookIdentifier, Series
-from buku.models.job import Job
 from buku.models.library import Library
 from buku.scanner.cover import cache_cover
 from buku.scanner.handlers import FormatHandler, get_default_handlers, get_handler_for_file
@@ -435,12 +433,4 @@ class LibraryScanner:
 
     def _enqueue_metadata_job(self, db: Session, book_id: int, library_id: int) -> None:
         """Queue a background metadata enrichment job."""
-        job = Job(
-            id=str(uuid.uuid4()),
-            type="metadata_lookup",
-            status="queued",
-            payload=json.dumps({"book_id": book_id, "library_id": library_id}),
-            attempts=0,
-            max_attempts=3,
-        )
-        db.add(job)
+        enqueue_job(db, "metadata_lookup", {"book_id": book_id, "library_id": library_id})

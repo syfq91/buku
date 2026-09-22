@@ -22,7 +22,7 @@ def auth_test_env(tmp_path: Path) -> Generator[tuple[TestClient, str]]:
     reset_engine()
     db_path = tmp_path / "auth_test.db"
     db_url = f"sqlite:///{db_path}"
-    settings = Settings(config_dir=tmp_path, database_url=db_url)
+    settings = Settings(config_dir=tmp_path, database_url=db_url, jobs_enabled=False)
     set_settings(settings)
 
     run_migrations(db_url)

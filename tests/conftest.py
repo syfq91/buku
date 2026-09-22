@@ -40,6 +40,7 @@ def test_settings(tmp_config_dir: Path, tmp_books_dir: Path) -> Generator[Settin
         debug=True,
         config_dir=tmp_config_dir,
         books_dir=tmp_books_dir,
+        jobs_enabled=False,
     )
     set_settings(settings)
     yield settings
@@ -60,7 +61,7 @@ def opds_env(tmp_path: Path) -> Generator[OpdsEnv]:
     reset_engine()
     database_file = tmp_path / "opds.db"
     url = f"sqlite:///{database_file}"
-    settings = Settings(config_dir=tmp_path, database_url=url)
+    settings = Settings(config_dir=tmp_path, database_url=url, jobs_enabled=False)
     set_settings(settings)
     run_migrations(url)
 

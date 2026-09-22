@@ -195,7 +195,8 @@ Development follows the 28-phase blueprint detailed in [`plan.md`](plan.md):
 - [x] **Phases 12–13**: OPDS 1.2 Catalog & OPDS Progression 1.0 Sync (root/books/series/authors/search feeds, RFC 5005 pagination, acquisition & artwork links, OpenSearch, OPDS-authenticated downloads, `GET`/`PUT /opds/progression/{id}` with RFC 7807 problem-details conflicts — read-only, ProgressionService-backed, user-isolated)
 - [x] **Phases 14–15**: Representation System & X4 EPUB Optimization
 - [x] **Phase 16**: On-Demand X4 OPDS
-- [ ] **Phases 17–18**: SQLite Job Queue & Cache System
+- [x] **Phase 17**: SQLite Job Queue (async worker pools, typed handlers, lifespan wiring)
+- [ ] **Phase 18**: Cache System (`/config/cache/` hierarchy, disposable artifacts)
 - [ ] **Phases 19–20**: Admin Console & Unified REST API
 - [ ] **Phases 21–28**: Security, Benchmarking, Docker Multi-Arch, CI/CD, and End-to-End Acceptance
 

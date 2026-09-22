@@ -34,7 +34,7 @@ def db_url(tmp_path: Path) -> Generator[str]:
     reset_engine()
     database_file = tmp_path / "test_review.db"
     url = f"sqlite:///{database_file}"
-    settings = Settings(config_dir=tmp_path, database_url=url)
+    settings = Settings(config_dir=tmp_path, database_url=url, jobs_enabled=False)
     set_settings(settings)
     run_migrations(url)
     yield url
@@ -53,7 +53,7 @@ def review_env(tmp_path: Path) -> Generator[tuple[TestClient, sessionmaker[Sessi
     reset_engine()
     database_file = tmp_path / "review_http.db"
     url = f"sqlite:///{database_file}"
-    settings = Settings(config_dir=tmp_path, database_url=url)
+    settings = Settings(config_dir=tmp_path, database_url=url, jobs_enabled=False)
     set_settings(settings)
     run_migrations(url)
 

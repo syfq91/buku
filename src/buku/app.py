@@ -33,8 +33,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     logger.info("Books directory: %s", settings.books_dir)
     logger.info("Database URL: %s", settings.effective_database_url)
 
+    worker: Any = None
+    if settings.jobs_enabled:
+        from buku.db import get_session_factory
+        from buku.jobs.worker import JobWorker
+
+        worker = JobWorker(
+            get_session_factory(engine),
+            poll_interval=settings.jobs_poll_interval,
+        )
+        await worker.start()
+
     yield
 
+    if worker is not None:
+        await worker.stop()
     engine.dispose()
     logger.info("Stopping buku")
 

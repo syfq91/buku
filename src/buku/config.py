@@ -109,6 +109,10 @@ class Settings(BaseSettings):
     # Google Books metadata enrichment (optional API key)
     google_books_api_key: str | None = None
 
+    # Phase 17 background job worker
+    jobs_enabled: bool = True
+    jobs_poll_interval: float = 1.0
+
     @property
     def effective_database_url(self) -> str:
         """Return explicitly configured database URL or SQLite DB inside config_dir."""

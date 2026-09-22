@@ -44,7 +44,7 @@ def db_url(tmp_path: Path) -> Generator[str]:
     reset_engine()
     database_file = tmp_path / "test_web.db"
     url = f"sqlite:///{database_file}"
-    settings = Settings(config_dir=tmp_path, database_url=url)
+    settings = Settings(config_dir=tmp_path, database_url=url, jobs_enabled=False)
     set_settings(settings)
     run_migrations(url)
     yield url
@@ -64,7 +64,7 @@ def web_env(tmp_path: Path) -> Generator[WebEnv]:
     reset_engine()
     database_file = tmp_path / "web_http.db"
     url = f"sqlite:///{database_file}"
-    settings = Settings(config_dir=tmp_path, database_url=url)
+    settings = Settings(config_dir=tmp_path, database_url=url, jobs_enabled=False)
     set_settings(settings)
     run_migrations(url)
 

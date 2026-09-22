@@ -33,7 +33,9 @@ def rep_env(tmp_path: Path) -> Generator[RepEnv]:
     """Migrated DB, writable config cache, and a seeded library root."""
     reset_engine()
     url = f"sqlite:///{tmp_path}/representations.db"
-    settings = Settings(config_dir=tmp_path, books_dir=tmp_path, database_url=url)
+    settings = Settings(
+        config_dir=tmp_path, books_dir=tmp_path, database_url=url, jobs_enabled=False
+    )
     set_settings(settings)
     run_migrations(url)
 

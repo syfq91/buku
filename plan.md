@@ -736,6 +736,11 @@ jobs
 - 1 X4 Generation worker
 - 2 Metadata Enrichment workers
 
+**Status:** Implemented in `src/buku/jobs/` (`queue.py`, `handlers.py`, `worker.py`).
+Worker pools start from the FastAPI lifespan (`settings.jobs_enabled`), claim jobs
+optimistically from SQLite, and run the five job types above. Stale `running`
+rows are re-queued on startup. Tests: `tests/test_jobs.py`.
+
 ---
 
 ## Phase 18: Cache Management
