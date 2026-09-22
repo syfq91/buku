@@ -1,14 +1,17 @@
-"""OPDS HTTP transport routes (Phases 12-13).
+"""OPDS HTTP transport routes (Phases 12-13, 16).
 
 Thin transport layer: validates inputs, delegates to the OPDS catalog service
-(:mod:`buku.opds.service`) and the canonical progression store
-(:mod:`buku.services.progression`), and serializes Atom/JSON output. No
+(:mod:`buku.opds.service`), the canonical progression store
+(:mod:`buku.services.progression`), and the representation cache
+(:mod:`buku.services.representation`), and serializes Atom/JSON output. No
 business logic lives here and nothing ever writes to the media directories.
 
 Phase 12  — OPDS 1.2 catalog: root/books/series/authors/search feeds,
             acquisitions, artwork, pagination, OpenSearch autodiscovery.
 Phase 13  — OPDS Progression 1.0: ``GET``/``PUT`` /opds/progression/{book_id}
             with RFC 7807 problem-details conflict/validation errors.
+Phase 16  — On-demand X4 catalog under ``/opds/x4`` plus cached ``.epub``
+            download; original media is never modified.
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session as DbSession
 
 from buku.db import get_db
+from buku.models.book import Book
 from buku.models.user import User
 from buku.opds.auth import get_opds_user
 from buku.opds.models import (
@@ -41,8 +45,10 @@ from buku.opds.progression import (
 )
 from buku.opds.serializer import serialize_feed, serialize_opensearch_description
 from buku.opds.service import opds_service
+from buku.represent import RepresentationError
 from buku.services.catalog import catalog_service
 from buku.services.progression import ProgressionStatus, progression_service
+from buku.services.representation import representation_service
 
 router = APIRouter(tags=["OPDS"])
 
@@ -268,3 +274,90 @@ def opds_put_progression(
     status_code = 201 if result.status is ProgressionStatus.CREATED else 200
     response = document_to_json(state_to_document(result.state))
     return JSONResponse(content=response, status_code=status_code, media_type=PROGRESSION_TYPE)
+
+
+# --------------------------------------------------------------------------- #
+# Phase 16 — On-demand X4 catalog
+# --------------------------------------------------------------------------- #
+@router.get("/opds/x4", response_class=Response)
+def opds_x4_root(
+    request: Request,
+    db: Annotated[DbSession, Depends(get_db)],
+    _user: Annotated[User, Depends(get_opds_user)],
+) -> Response:
+    """X4 catalog root: navigation feed over the e-ink optimized sections."""
+    return _feed_response(opds_service.x4_root(db, _base_url(request)))
+
+
+@router.get("/opds/x4/books", response_class=Response)
+def opds_x4_books(
+    request: Request,
+    db: Annotated[DbSession, Depends(get_db)],
+    _user: Annotated[User, Depends(get_opds_user)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=100)] = OPDS_PAGE_SIZE,
+) -> Response:
+    """Acquisition feed of books ready for the X4 profile, paginated by title."""
+    return _feed_response(opds_service.x4_books(db, _base_url(request), page=page, per_page=limit))
+
+
+@router.get("/opds/x4/series", response_class=Response)
+def opds_x4_series(
+    request: Request,
+    db: Annotated[DbSession, Depends(get_db)],
+    _user: Annotated[User, Depends(get_opds_user)],
+) -> Response:
+    """Navigation feed listing series that contain at least one X4-ready book."""
+    return _feed_response(opds_service.x4_series_listing(db, _base_url(request)))
+
+
+@router.get("/opds/x4/series/{series_id}", response_class=Response)
+def opds_x4_series_books(
+    series_id: int,
+    request: Request,
+    db: Annotated[DbSession, Depends(get_db)],
+    _user: Annotated[User, Depends(get_opds_user)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=100)] = OPDS_PAGE_SIZE,
+) -> Response:
+    """Acquisition feed of X4-ready books inside one series."""
+    feed = opds_service.x4_series_books(
+        db, _base_url(request), series_id, page=page, per_page=limit
+    )
+    if feed is None:
+        raise HTTPException(status_code=404, detail="Series not found.")
+    return _feed_response(feed)
+
+
+@router.get("/opds/x4/search", response_class=Response)
+def opds_x4_search(
+    request: Request,
+    db: Annotated[DbSession, Depends(get_db)],
+    _user: Annotated[User, Depends(get_opds_user)],
+    q: Annotated[str, Query(description="Full-text search query.")] = "",
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=100)] = OPDS_PAGE_SIZE,
+) -> Response:
+    """Acquisition feed of FTS5 search results restricted to X4-ready books."""
+    return _feed_response(
+        opds_service.x4_search(db, _base_url(request), q, page=page, per_page=limit)
+    )
+
+
+@router.get("/opds/x4/books/{book_id}.epub")
+def opds_x4_download(
+    book_id: int,
+    db: Annotated[DbSession, Depends(get_db)],
+    _user: Annotated[User, Depends(get_opds_user)],
+) -> Response:
+    """Serve the cached X4 EPUB for a logical book, generating it on demand."""
+    if db.get(Book, book_id) is None:
+        raise HTTPException(status_code=404, detail="Book not found.")
+    try:
+        row = representation_service.generate(db, book_id, "x4")
+    except RepresentationError as exc:
+        raise HTTPException(status_code=406, detail=str(exc)) from exc
+    path = representation_service.path(row)
+    if path is None:
+        raise HTTPException(status_code=410, detail="Representation cache is unavailable.")
+    return FileResponse(str(path), media_type="application/epub+zip")
