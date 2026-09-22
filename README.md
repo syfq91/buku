@@ -204,4 +204,4 @@ Development follows the 28-phase blueprint detailed in [`plan.md`](plan.md):
 
 ## License
 
-MIT
+[MIT](https://github.com/syfq91/buku?tab=MIT-1-ov-file)
