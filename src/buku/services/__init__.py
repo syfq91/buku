@@ -3,6 +3,7 @@
 from buku.services.admin import AdminService, admin_service
 from buku.services.auth import AuthenticationService, auth_service
 from buku.services.authorization import AuthorizationService, Role, authorization_service
+from buku.services.cache import CacheService, cache_service
 from buku.services.catalog import CatalogService, catalog_service
 from buku.services.metadata_review import MetadataReviewService, review_service
 from buku.services.progression import (
@@ -25,6 +26,7 @@ __all__ = [
     "AdminService",
     "AuthenticationService",
     "AuthorizationService",
+    "CacheService",
     "CatalogService",
     "MetadataReviewService",
     "ProgressionService",
@@ -40,6 +42,7 @@ __all__ = [
     "admin_service",
     "auth_service",
     "authorization_service",
+    "cache_service",
     "catalog_service",
     "progression_service",
     "reader_service",

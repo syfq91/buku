@@ -83,6 +83,10 @@ def load_toml_config(path: Path) -> dict[str, Any]:
         if "url" in data["database"]:
             flat["database_url"] = data["database"]["url"]
 
+    if "cache" in data and isinstance(data["cache"], dict):
+        if "max_bytes" in data["cache"]:
+            flat["cache_max_bytes"] = data["cache"]["max_bytes"]
+
     return flat
 
 
@@ -112,6 +116,9 @@ class Settings(BaseSettings):
     # Phase 17 background job worker
     jobs_enabled: bool = True
     jobs_poll_interval: float = 1.0
+
+    # Phase 18 disposable cache size limit in bytes (0 = unlimited)
+    cache_max_bytes: int = Field(default=0, ge=0)
 
     @property
     def effective_database_url(self) -> str:

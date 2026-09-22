@@ -52,11 +52,13 @@ def handle_metadata_lookup(factory: sessionmaker[Session], payload: dict[str, An
 
 def handle_generate_x4(factory: sessionmaker[Session], payload: dict[str, Any]) -> None:
     """Generate (or refresh) the cached e-ink X4 representation."""
+    from buku.services.cache import cache_service
     from buku.services.representation import representation_service
 
     book_id = _require_int(payload, "book_id")
     with factory() as db:
         representation_service.generate(db, book_id, "x4")
+    cache_service.enforce_limit()
 
 
 def _first_present_file(book: Any) -> Any:
@@ -94,6 +96,10 @@ def handle_generate_cover(factory: sessionmaker[Session], payload: dict[str, Any
             raise ValueError(f"Failed to cache cover for book {book_id}.")
         book.cover_path = cover_path
         db.commit()
+
+    from buku.services.cache import cache_service
+
+    cache_service.enforce_limit()
 
 
 def handle_extract_metadata(factory: sessionmaker[Session], payload: dict[str, Any]) -> None:
@@ -143,6 +149,33 @@ def handle_extract_metadata(factory: sessionmaker[Session], payload: dict[str, A
                 book.cover_path = cover_path
         db.commit()
 
+    from buku.services.cache import cache_service
+
+    cache_service.enforce_limit()
+
+
+def handle_cache_maintenance(factory: sessionmaker[Session], payload: dict[str, Any]) -> None:
+    """Validate cache integrity, then evict artifacts beyond the size limit.
+
+    ``factory``/``payload`` are accepted for handler-signature compatibility
+    and reserved for future targeted options; maintenance always covers the
+    whole cache tree.
+    """
+    from buku.services.cache import cache_service
+
+    report = cache_service.validate()
+    evicted = cache_service.enforce_limit()
+    logger.info(
+        "Cache maintenance: checked=%d removed_tmp=%d removed_empty=%d "
+        "removed_escaped=%d checksum_failures=%d evicted=%d",
+        report.checked,
+        report.removed_tmp,
+        report.removed_empty,
+        report.removed_escaped,
+        len(report.checksum_failures),
+        evicted,
+    )
+
 
 HANDLERS: dict[str, JobHandler] = {
     "scan_library": handle_scan_library,
@@ -150,6 +183,7 @@ HANDLERS: dict[str, JobHandler] = {
     "metadata_lookup": handle_metadata_lookup,
     "generate_cover": handle_generate_cover,
     "generate_x4": handle_generate_x4,
+    "cache_maintenance": handle_cache_maintenance,
 }
 
 
@@ -167,6 +201,7 @@ __all__ = [
     "HANDLERS",
     "JobHandler",
     "decode_payload",
+    "handle_cache_maintenance",
     "handle_extract_metadata",
     "handle_generate_cover",
     "handle_generate_x4",

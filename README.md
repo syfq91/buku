@@ -117,6 +117,9 @@ books_dir = "/books"
 
 [database]
 url = "sqlite:////config/buku.db"
+
+[cache]
+max_bytes = 0
 ```
 
 ### Environment Variables
@@ -130,6 +133,7 @@ url = "sqlite:////config/buku.db"
 | `BUKU_BOOKS_DIR` | `BOOKSERVER_BOOKS_DIR` | `/books` (or `./books`) | Path to read-only media library |
 | `BUKU_CONFIG` | `BOOKSERVER_CONFIG` | *None* | Path to explicit TOML configuration file |
 | `BUKU_DATABASE_URL` | `BOOKSERVER_DATABASE_URL` | `sqlite:///{config_dir}/buku.db` | SQLAlchemy connection URL |
+| `BUKU_CACHE_MAX_BYTES` | — | `0` (unlimited) | Disposable cache size limit in bytes |
 
 ---
 
@@ -196,7 +200,7 @@ Development follows the 28-phase blueprint detailed in [`plan.md`](plan.md):
 - [x] **Phases 14–15**: Representation System & X4 EPUB Optimization
 - [x] **Phase 16**: On-Demand X4 OPDS
 - [x] **Phase 17**: SQLite Job Queue (async worker pools, typed handlers, lifespan wiring)
-- [ ] **Phase 18**: Cache System (`/config/cache/` hierarchy, disposable artifacts)
+- [x] **Phase 18**: Cache System (`/config/cache/` hierarchy, disposable artifacts)
 - [ ] **Phases 19–20**: Admin Console & Unified REST API
 - [ ] **Phases 21–28**: Security, Benchmarking, Docker Multi-Arch, CI/CD, and End-to-End Acceptance
 

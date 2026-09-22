@@ -64,13 +64,14 @@ def _make_book(factory: sessionmaker[Session], title: str = "Dune") -> int:
 
 
 def test_job_types_match_plan() -> None:
-    """Phase 17 initial job types are exactly the plan.md set."""
+    """Phase 17–18 job types are exactly the plan.md set."""
     assert JOB_TYPES == (
         "scan_library",
         "extract_metadata",
         "metadata_lookup",
         "generate_cover",
         "generate_x4",
+        "cache_maintenance",
     )
     for job_type in JOB_TYPES:
         assert job_type in HANDLERS
@@ -85,6 +86,7 @@ def test_worker_concurrency_defaults() -> None:
         "extract_metadata",
         "metadata_lookup",
         "generate_cover",
+        "cache_maintenance",
     }
     assert set(POOL_JOB_TYPES["scan"] + POOL_JOB_TYPES["x4"] + POOL_JOB_TYPES["metadata"]) == set(
         JOB_TYPES

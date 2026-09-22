@@ -761,6 +761,13 @@ Disposable cache hierarchy located under `/config/cache/`:
 - Eviction policy for stale representations.
 - Database and original media files remain single source of truth.
 
+**Status:** Implemented in `src/buku/services/cache.py` (`CacheService`:
+stats, `.tmp`/empty/symlink validation, `.sha256` sidecar integrity, manual
+`clear()`, LRU-by-mtime `evict()`). Size limit via `cache_max_bytes`
+(`[cache] max_bytes` / `BUKU_CACHE_MAX_BYTES`, `0` = unlimited) enforced
+after cover/X4 writes and by the `cache_maintenance` job type. Tests:
+`tests/test_cache.py`.
+
 ---
 
 ## Phase 19: Admin System

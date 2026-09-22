@@ -21,20 +21,26 @@ from buku.models.job import Job
 
 logger = logging.getLogger("buku.jobs")
 
-# All registered job types (plan.md Phase 17).
+# All registered job types (plan.md Phases 17–18).
 JOB_TYPES: tuple[str, ...] = (
     "scan_library",
     "extract_metadata",
     "metadata_lookup",
     "generate_cover",
     "generate_x4",
+    "cache_maintenance",
 )
 
 # Worker pool name -> job types handled exclusively by that pool.
 POOL_JOB_TYPES: dict[str, tuple[str, ...]] = {
     "scan": ("scan_library",),
     "x4": ("generate_x4",),
-    "metadata": ("extract_metadata", "metadata_lookup", "generate_cover"),
+    "metadata": (
+        "extract_metadata",
+        "metadata_lookup",
+        "generate_cover",
+        "cache_maintenance",
+    ),
 }
 
 # plan.md concurrency defaults: 1 scan, 1 x4, 2 metadata enrichment.
